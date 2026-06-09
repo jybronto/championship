@@ -401,7 +401,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v2.6';
+const VERSION = 'v2.7';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий'];
 
@@ -1008,27 +1008,31 @@ function renderMatchCard(m) {
   const isPlayoff = !!m.round;
   const badgeLabel = isPlayoff ? (PLAYOFF_ROUNDS[m.round] || m.round) : `Группа ${m.group}`;
 
-  // Score inputs always in the center column (where VS used to be)
-  const hVal = m.result ? m.result.home : '';
-  const aVal = m.result ? m.result.away : '';
+  // Center column: locked score display OR editable inputs
   const inputStyle = `width:40px;height:38px;text-align:center;font-size:18px;font-weight:700;
     background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text)`;
-  const centerHtml = `
-    <div style="display:flex;flex-direction:column;align-items:center;gap:5px;flex-shrink:0">
-      <div style="display:flex;align-items:center;gap:5px">
-        <input type="number" id="rh-${m.id}" value="${hVal}" min="0" max="20" placeholder="0"
-          onfocus="this.select()" style="${inputStyle}">
-        <span style="font-size:18px;font-weight:700;color:var(--text-dim)">:</span>
-        <input type="number" id="ra-${m.id}" value="${aVal}" min="0" max="20" placeholder="0"
-          onfocus="this.select()" style="${inputStyle}">
-      </div>
-      <div style="display:flex;gap:4px">
+
+  const centerHtml = m.result
+    // Result saved → show locked score text
+    ? `<div class="match-result-score">${m.result.home}:${m.result.away}</div>`
+    // No result → show editable inputs + ✓
+    : `<div style="display:flex;flex-direction:column;align-items:center;gap:5px;flex-shrink:0">
+        <div style="display:flex;align-items:center;gap:5px">
+          <input type="number" id="rh-${m.id}" value="" min="0" max="20" placeholder="0"
+            onfocus="this.select()" style="${inputStyle}">
+          <span style="font-size:18px;font-weight:700;color:var(--text-dim)">:</span>
+          <input type="number" id="ra-${m.id}" value="" min="0" max="20" placeholder="0"
+            onfocus="this.select()" style="${inputStyle}">
+        </div>
         <button class="btn btn-sm" onclick="saveResult(${m.id})"
-          style="padding:3px 12px;font-size:12px">✓</button>
-        ${m.result ? `<button class="btn btn-sm btn-danger" onclick="clearResult(${m.id})"
-          style="padding:3px 9px;font-size:12px">✕</button>` : ''}
-      </div>
-    </div>`;
+          style="padding:3px 14px;font-size:12px">✓</button>
+      </div>`;
+
+  // ✕ clear button — only when result exists, right side of the row
+  const clearBtn = m.result
+    ? `<button class="btn btn-sm btn-danger" onclick="clearResult(${m.id})"
+        style="flex-shrink:0;margin-left:6px;padding:6px 10px;font-size:14px;align-self:center">✕</button>`
+    : '';
 
   let predHtml = '';
   if (PLAYERS.some(p => data.predictions[`${m.id}_${p}`] || m.result)) {
@@ -1056,16 +1060,19 @@ function renderMatchCard(m) {
       <span class="match-group-badge${isPlayoff?' playoff-badge':''}">${badgeLabel}</span>
       <span class="match-date-str">${dateStr}${locked&&!m.result?' <span class="locked-badge">СТАРТ</span>':''}</span>
     </div>
-    <div class="match-teams-row">
-      <div class="match-team-side">
-        <div class="match-flag">${flag(m.home)}</div>
-        <div class="match-team-name">${m.home}</div>
+    <div style="display:flex;align-items:center">
+      <div class="match-teams-row" style="flex:1">
+        <div class="match-team-side">
+          <div class="match-flag">${flag(m.home)}</div>
+          <div class="match-team-name">${m.home}</div>
+        </div>
+        ${centerHtml}
+        <div class="match-team-side">
+          <div class="match-flag">${flag(m.away)}</div>
+          <div class="match-team-name">${m.away}</div>
+        </div>
       </div>
-      ${centerHtml}
-      <div class="match-team-side">
-        <div class="match-flag">${flag(m.away)}</div>
-        <div class="match-team-name">${m.away}</div>
-      </div>
+      ${clearBtn}
     </div>
     ${predHtml}
   </div>`;
