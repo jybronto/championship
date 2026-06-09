@@ -21,13 +21,13 @@
   --blue: #448aff;
 }
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html, body { height: 100%; }
+html { min-height: 100%; background: var(--bg); }
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
-  padding-bottom: calc(68px + env(safe-area-inset-bottom, 12px));
+  padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px));
 }
 
 /* ---- HEADER ---- */
@@ -406,7 +406,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.5';
+const VERSION = 'v3.7';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий'];
 
