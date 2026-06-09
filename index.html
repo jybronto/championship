@@ -398,7 +398,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v1.0';
+const VERSION = 'v1.1';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий'];
 
@@ -536,6 +536,7 @@ function buildDefaultData() {
     tournamentWinner: null,
     matches: generateDefaultMatches(),
     predictions: {},
+    lockedBets: {},
     apiKey: '',
     lastSync: null,
   };
@@ -548,6 +549,7 @@ function normalizeData(val) {
   }
   if (!val.predictions)    val.predictions    = {};
   if (!val.tournamentPicks) val.tournamentPicks = {};
+  if (!val.lockedBets)     val.lockedBets     = {};
   return val;
 }
 
@@ -669,6 +671,7 @@ let data = buildDefaultData(); // real data loaded async by initFirebase()
 let activeTab = 'lb';
 let matchFilter = 'upcoming';
 let currentMatchIdx = -1; // -1 = auto → nearest upcoming match
+let betsUnlocked = false;  // true after PIN 3220 on Ставки tab
 
 // ===================== TAB SWITCHING =====================
 
@@ -763,17 +766,18 @@ function renderLeaderboard() {
   document.getElementById('lb-content').innerHTML = html;
 }
 
-function renderBetInputs(match) {
+function renderBetInputs(match, adminMode) {
+  const betLocked = !adminMode && data.lockedBets && data.lockedBets[match.id];
   let html = '<div class="cbet-grid">';
   PLAYERS.forEach(p => {
     const pred = data.predictions[`${match.id}_${p}`];
     if (pred) {
       html += `<div class="cbet-cell">
         <div class="cbet-name">${p}</div>
-        <div class="cbet-done">✅ ${pred.home}:${pred.away}</div>
-        <button class="btn-clear-sm" onclick="clearBetFor(${match.id},'${p}')">✕</button>
+        <div class="cbet-done">${betLocked ? '🔒' : '✅'} ${pred.home}:${pred.away}</div>
+        ${!betLocked ? `<button class="btn-clear-sm" onclick="clearBetFor(${match.id},'${p}')">✕</button>` : ''}
       </div>`;
-    } else {
+    } else if (!betLocked) {
       html += `<div class="cbet-cell">
         <div class="cbet-name">${p}</div>
         <div class="cbet-inputs">
@@ -785,6 +789,11 @@ function renderBetInputs(match) {
         </div>
         <button class="btn-save-sm" onclick="saveBetFor(${match.id},'${p}')">✓</button>
       </div>`;
+    } else {
+      html += `<div class="cbet-cell" style="opacity:.4">
+        <div class="cbet-name">${p}</div>
+        <div class="cbet-done" style="color:var(--text-dim)">— нет</div>
+      </div>`;
     }
   });
   html += '</div>';
@@ -794,6 +803,7 @@ function renderBetInputs(match) {
 function renderMultiBetPanel(match) {
   const leaders = getLeaders(data);
   const maxPts = getStandings(data)[0]?.total ?? 0;
+  const betLocked = data.lockedBets && data.lockedBets[match.id];
 
   let html = `<div class="multi-card">
     <div class="multi-match-hdr">
@@ -802,13 +812,19 @@ function renderMultiBetPanel(match) {
       <div class="multi-match-date">⏰ ${fmtDate(match.date)}</div>
     </div>`;
 
-  if (maxPts > 0 && leaders.length) {
+  if (betLocked) {
+    html += `<div class="info-box" style="margin-bottom:10px;font-size:12px">🔒 Ставки зафиксированы · Изменить → вкладка <strong>Ставки</strong></div>`;
+  } else if (maxPts > 0 && leaders.length) {
     html += `<div class="warn-box" style="margin-bottom:10px">⚠️ Первым ставит: <strong>${leaders[0]}</strong></div>`;
   }
 
-  html += renderBetInputs(match);
-  html += `<button class="btn" style="margin-top:10px" onclick="submitAllBets(${match.id})">💾 Сохранить все ставки</button></div>`;
+  html += renderBetInputs(match, false);
 
+  if (!betLocked) {
+    html += `<button class="btn" style="margin-top:10px" onclick="submitAllBets(${match.id})">💾 Сохранить все ставки</button>`;
+  }
+
+  html += '</div>';
   return html;
 }
 
@@ -851,6 +867,7 @@ function submitAllBets(matchId) {
   });
 
   if (!saved) { alert('Никто не заполнил ставку. Используй ✓ рядом с именем игрока.'); return; }
+  data.lockedBets[matchId] = true;
   saveData(data);
   renderLeaderboard();
   if (activeTab === 'matches') renderMatches();
@@ -858,7 +875,12 @@ function submitAllBets(matchId) {
 }
 
 function clearBetFor(matchId, player) {
+  if (data.lockedBets && data.lockedBets[matchId] && !betsUnlocked) {
+    alert('Ставки зафиксированы. Для изменений перейди во вкладку Ставки и введи PIN.');
+    return;
+  }
   delete data.predictions[`${matchId}_${player}`];
+  if (data.lockedBets && data.lockedBets[matchId]) delete data.lockedBets[matchId];
   saveData(data);
   renderLeaderboard();
   if (activeTab === 'matches') renderMatches();
@@ -964,18 +986,46 @@ function toggleBetRow(matchId) {
   if (el) el.classList.toggle('expanded');
 }
 
+function checkBetsPin() {
+  const pin = document.getElementById('bets-pin-input').value;
+  if (pin === '3220') {
+    betsUnlocked = true;
+    renderBets();
+  } else {
+    document.getElementById('bets-pin-error').textContent = 'Неверный PIN';
+  }
+}
+
 function renderBets() {
+  if (!betsUnlocked) {
+    document.getElementById('bets-content').innerHTML = `
+      <div style="text-align:center;padding:60px 20px">
+        <div style="font-size:40px">🔐</div>
+        <div style="font-size:17px;font-weight:600;margin:12px 0">Управление ставками</div>
+        <div style="color:var(--text-dim);font-size:13px;margin-bottom:16px">Введи PIN для редактирования</div>
+        <input type="password" id="bets-pin-input" maxlength="6" placeholder="••••"
+          style="width:130px;height:52px;text-align:center;font-size:26px;letter-spacing:8px;font-weight:700;
+                 background:var(--surface2);border:2px solid var(--border);border-radius:12px;
+                 color:var(--text);display:block;margin:0 auto"
+          onkeyup="if(event.key==='Enter')checkBetsPin()">
+        <button class="btn" style="max-width:160px;margin:12px auto" onclick="checkBetsPin()">Открыть</button>
+        <div id="bets-pin-error" style="color:var(--red);font-size:13px;margin-top:8px"></div>
+      </div>`;
+    return;
+  }
+
   const upcoming = data.matches
     .filter(m => !isLocked(m))
     .sort((a,b) => new Date(a.date) - new Date(b.date));
 
-  let html = '<div class="sec-label">Предстоящие матчи</div>';
+  let html = '<div class="sec-label">Управление ставками · PIN активен 🔓</div>';
 
   if (!upcoming.length) {
     html += '<div class="empty-state">Нет предстоящих матчей</div>';
   } else {
     upcoming.forEach(m => {
       const betCount = PLAYERS.filter(p => data.predictions[`${m.id}_${p}`]).length;
+      const isLockedBet = data.lockedBets && data.lockedBets[m.id];
       const d = new Date(m.date);
       const mon = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'][d.getMonth()];
       const dateStr = `${d.getDate()} ${mon} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
@@ -985,11 +1035,12 @@ function renderBets() {
           <span class="bet-row-teams">${flag(m.home)} ${m.home} — ${flag(m.away)} ${m.away}</span>
           <span class="bet-row-date">${dateStr}</span>
           <span class="bet-row-count">${betCount}/7</span>
+          <span style="font-size:12px">${isLockedBet ? '🔒' : ''}</span>
           <span class="bet-row-chevron">▼</span>
         </div>
         <div class="bet-row-body">
-          ${renderBetInputs(m)}
-          <button class="btn btn-sm" style="margin-top:8px" onclick="submitAllBets(${m.id})">💾 Сохранить</button>
+          ${renderBetInputs(m, true)}
+          <button class="btn btn-sm" style="margin-top:8px" onclick="submitAllBets(${m.id})">💾 Зафиксировать</button>
         </div>
       </div>`;
     });
