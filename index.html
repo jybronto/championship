@@ -406,7 +406,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v2.9';
+const VERSION = 'v3.0';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий'];
 
@@ -1258,6 +1258,17 @@ function renderAdmin() {
 // ===================== RENDER PLAYOFF =====================
 
 function renderPlayoff() {
+  // Update autocomplete: only real teams currently in playoff matches
+  const playoffTeams = new Set();
+  data.matches
+    .filter(m => m.round)
+    .forEach(m => {
+      if (TEAMS[m.home]) playoffTeams.add(m.home);
+      if (TEAMS[m.away]) playoffTeams.add(m.away);
+    });
+  const dl = document.getElementById('teams-list');
+  if (dl) dl.innerHTML = [...playoffTeams].sort().map(t => `<option value="${t}">`).join('');
+
   let html = '';
 
   // Group standings (compact 2-column grid)
@@ -1470,13 +1481,6 @@ function resetAll() {
 
 function init() {
   document.getElementById('version-badge').textContent = VERSION;
-  // Populate team autocomplete datalist
-  const dl = document.getElementById('teams-list');
-  Object.keys(TEAMS).sort().forEach(t => {
-    const opt = document.createElement('option');
-    opt.value = t;
-    dl.appendChild(opt);
-  });
   initFirebase(); // loads data, then calls renderLeaderboard + hideLoader
 }
 
