@@ -398,7 +398,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v1.1';
+const VERSION = 'v1.2';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий'];
 
@@ -1061,12 +1061,14 @@ function renderAdmin() {
   html += '<div class="sec-label">Автообновление результатов</div>';
   html += `<div class="admin-section">
     <div class="admin-section-title">🔗 API football-data.org</div>
-    <div style="font-size:12px;color:var(--text-dim);margin-bottom:10px">
-      Бесплатный ключ на <a href="https://www.football-data.org/client/register" target="_blank" style="color:var(--accent);text-decoration:none">football-data.org</a>
-      — регистрация 1 мин.
+    <div style="background:#2a1800;border:1px solid var(--orange);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--orange);margin-bottom:10px;line-height:1.7">
+      ⚠️ <strong>Бесплатный ключ не даёт доступ к ЧМ.</strong><br>
+      Бесплатный план (Tier 1) включает только клубные лиги (АПЛ, Бундеслига и т.д.).<br>
+      Данные ЧМ 2026 — от <strong>Tier 4 (€99/мес)</strong>.<br>
+      <span style="color:var(--text-dim)">Альтернатива: вводи результаты вручную в разделе ниже.</span>
     </div>
     <input type="text" id="api-key-input" value="${data.apiKey || ''}"
-      placeholder="Вставь API ключ сюда"
+      placeholder="API ключ (только для платного плана)"
       style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;
              color:var(--text);padding:10px;font-size:13px;margin-bottom:10px;font-family:monospace">
     <div style="display:flex;gap:8px;margin-bottom:8px">
@@ -1074,9 +1076,6 @@ function renderAdmin() {
       <button class="btn btn-sm btn-sec" style="flex:1" onclick="syncResults()">🔄 Синхронизировать</button>
     </div>
     <div id="sync-status" style="font-size:12px;color:var(--text-dim)">${lastSyncStr}</div>
-    <div style="font-size:11px;color:var(--text-dim);margin-top:6px;line-height:1.6">
-      После сохранения ключа результаты обновляются автоматически каждые 5 минут.
-    </div>
   </div>`;
 
   // Tournament picks
@@ -1218,9 +1217,10 @@ async function syncResults() {
       { headers: { 'X-Auth-Token': apiKey } }
     );
 
-    if (res.status === 403) { showSyncMsg('❌ Неверный ключ или нет доступа к ЧМ 2026', 'error'); return; }
+    if (res.status === 403) { showSyncMsg('❌ Нет доступа к ЧМ 2026 — нужен Tier 4 план (€99/мес)', 'error'); return; }
+    if (res.status === 401) { showSyncMsg('❌ Неверный API ключ', 'error'); return; }
     if (res.status === 429) { showSyncMsg('⚠️ Слишком много запросов — подожди минуту', 'error'); return; }
-    if (!res.ok) { showSyncMsg(`❌ Ошибка ${res.status}`, 'error'); return; }
+    if (!res.ok) { showSyncMsg(`❌ Ошибка сервера: ${res.status}`, 'error'); return; }
 
     const json = await res.json();
     const apiMatches = json.matches || [];
@@ -1259,7 +1259,10 @@ async function syncResults() {
     syncTimer = setTimeout(syncResults, 5 * 60 * 1000);
 
   } catch (e) {
-    showSyncMsg('❌ Ошибка сети: ' + e.message, 'error');
+    const msg = (e instanceof TypeError)
+      ? '❌ Запрос заблокирован браузером (CORS). Скорее всего бесплатный ключ не даёт доступ к ЧМ — вводи результаты вручную.'
+      : '❌ Ошибка: ' + e.message;
+    showSyncMsg(msg, 'error');
   }
 }
 
