@@ -269,7 +269,7 @@ nav button.act { color: var(--accent); }
 .pg3-rank { font-size: 20px; line-height: 1; }
 .pg3-name { font-size: 13px; font-weight: 700; margin: 5px 0 2px; }
 .pg3-pts { font-size: 28px; font-weight: 800; color: var(--accent); line-height: 1; }
-.pg3-sub { font-size: 11px; color: var(--text-dim); margin-top: 3px; }
+.pg3-sub { font-size: 10px; color: var(--text-dim); margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 2px; }
 
 /* Multi-player bet panel */
 .multi-card {
@@ -306,6 +306,12 @@ nav button.act { color: var(--accent); }
   padding: 3px 6px; color: var(--text-dim); font-size: 11px; cursor: pointer; flex-shrink: 0;
 }
 .btn-clear-sm:hover { border-color: var(--red); color: var(--red); }
+.btn-save-sm {
+  background: var(--accent); border: none; border-radius: 6px;
+  padding: 3px 8px; color: #000; font-size: 13px; font-weight: 700;
+  cursor: pointer; flex-shrink: 0; line-height: 1;
+}
+.btn-save-sm:active { opacity: .8; }
 
 /* Bet rows accordion (Ставки tab) */
 .bet-row {
@@ -714,7 +720,7 @@ function renderLeaderboard() {
       <div class="pg3-rank">${rankEmoji[i] || (i+1)}</div>
       <div class="pg3-name">${s.name}${isLeader?' ★':''}</div>
       <div class="pg3-pts">${s.total}</div>
-      <div class="pg3-sub">${s.team ? flag(s.team) : '—'}</div>
+      <div class="pg3-sub">${s.team ? `${flag(s.team)} ${s.team}` : '—'}</div>
     </div>`;
   });
   html += '</div>';
@@ -768,10 +774,13 @@ function renderBetInputs(match) {
       html += `<div class="cbet-cell">
         <div class="cbet-name">${p}</div>
         <div class="cbet-inputs">
-          <input type="number" id="bh-${match.id}-${p}" value="0" min="0" max="20">
+          <input type="number" id="bh-${match.id}-${p}" value="0" min="0" max="20"
+            oninput="this.dataset.touched='1'">
           <span class="cbet-sep">:</span>
-          <input type="number" id="ba-${match.id}-${p}" value="0" min="0" max="20">
+          <input type="number" id="ba-${match.id}-${p}" value="0" min="0" max="20"
+            oninput="this.dataset.touched='1'">
         </div>
+        <button class="btn-save-sm" onclick="saveBetFor(${match.id},'${p}')">✓</button>
       </div>`;
     }
   });
@@ -807,19 +816,38 @@ function moveBetMatch(dir) {
   renderLeaderboard();
 }
 
+function saveBetFor(matchId, player) {
+  const m = data.matches.find(x => x.id === matchId);
+  if (!m || isLocked(m)) { alert('Матч уже начался! Ставки закрыты.'); return; }
+  const hEl = document.getElementById(`bh-${matchId}-${player}`);
+  const aEl = document.getElementById(`ba-${matchId}-${player}`);
+  if (!hEl || !aEl) return;
+  const h = Math.max(0, Math.min(20, parseInt(hEl.value) || 0));
+  const a = Math.max(0, Math.min(20, parseInt(aEl.value) || 0));
+  data.predictions[`${matchId}_${player}`] = { home: h, away: a, ts: Date.now() };
+  saveData(data);
+  renderLeaderboard();
+  if (activeTab === 'matches') renderMatches();
+  if (activeTab === 'bets') renderBets();
+}
+
 function submitAllBets(matchId) {
   const m = data.matches.find(x => x.id === matchId);
   if (!m || isLocked(m)) { alert('Матч уже начался! Ставки закрыты.'); return; }
 
+  let saved = 0;
   PLAYERS.forEach(p => {
     const hEl = document.getElementById(`bh-${matchId}-${p}`);
     const aEl = document.getElementById(`ba-${matchId}-${p}`);
     if (!hEl || !aEl) return; // already has a bet
+    if (!hEl.dataset.touched && !aEl.dataset.touched) return; // not touched — skip
     const h = Math.max(0, Math.min(20, parseInt(hEl.value) || 0));
     const a = Math.max(0, Math.min(20, parseInt(aEl.value) || 0));
     data.predictions[`${matchId}_${p}`] = { home: h, away: a, ts: Date.now() };
+    saved++;
   });
 
+  if (!saved) { alert('Никто не заполнил ставку. Используй ✓ рядом с именем игрока.'); return; }
   saveData(data);
   renderLeaderboard();
   if (activeTab === 'matches') renderMatches();
