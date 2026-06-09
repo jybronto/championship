@@ -406,7 +406,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.9';
+const VERSION = 'v3.10';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий'];
 
@@ -931,20 +931,26 @@ function submitAllBets(matchId) {
   const m = data.matches.find(x => x.id === matchId);
   if (!m || isLocked(m)) { alert('Матч уже начался! Ставки закрыты.'); return; }
 
-  // Save newly touched inputs (players without a bet yet)
+  // Check all players have placed a bet (saved or touched)
+  const missing = PLAYERS.filter(p => {
+    if (data.predictions[`${matchId}_${p}`]) return false;
+    const hEl = document.getElementById(`bh-${matchId}-${p}`);
+    return !hEl || !hEl.dataset.touched;
+  });
+  if (missing.length) {
+    alert(`Не все сделали ставку:\n${missing.join(', ')}`);
+    return;
+  }
+
+  // Save newly touched inputs
   PLAYERS.forEach(p => {
     const hEl = document.getElementById(`bh-${matchId}-${p}`);
     const aEl = document.getElementById(`ba-${matchId}-${p}`);
-    if (!hEl || !aEl) return; // already has a bet — input not rendered
-    if (!hEl.dataset.touched && !aEl.dataset.touched) return; // untouched — skip
+    if (!hEl || !aEl) return;
     const h = Math.max(0, Math.min(20, parseInt(hEl.value) || 0));
     const a = Math.max(0, Math.min(20, parseInt(aEl.value) || 0));
     data.predictions[`${matchId}_${p}`] = { home: h, away: a, ts: Date.now() };
   });
-
-  // Lock only if at least one player has a bet (new or previously saved)
-  const anyBet = PLAYERS.some(p => data.predictions[`${matchId}_${p}`]);
-  if (!anyBet) { alert('Никто ещё не сделал ставку.'); return; }
   data.lockedBets[matchId] = true;
   saveData(data);
   renderLeaderboard();
