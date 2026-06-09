@@ -274,30 +274,63 @@ nav button.act { color: var(--accent); }
 /* Multi-player bet panel */
 .multi-card {
   background: var(--surface); border: 1px solid var(--border);
-  border-radius: 14px; padding: 16px; margin-bottom: 12px;
+  border-radius: 14px; padding: 14px; margin-bottom: 12px;
 }
-.multi-match-hdr { text-align: center; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
-.multi-match-teams { font-size: 17px; font-weight: 700; margin: 6px 0 4px; }
+.multi-match-hdr { text-align: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+.multi-match-teams { font-size: 16px; font-weight: 700; margin: 5px 0 3px; }
 .multi-match-date { font-size: 12px; color: var(--text-dim); }
-.arow {
-  display: flex; align-items: center; gap: 8px;
-  padding: 7px 0; border-bottom: 1px solid var(--border);
+
+/* Compact 2-column bet grid */
+.cbet-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin: 8px 0; }
+.cbet-cell {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 7px; background: var(--surface2);
+  border-radius: 8px; min-height: 40px;
 }
-.arow:last-of-type { border-bottom: none; margin-bottom: 4px; }
-.arow-name { font-size: 14px; font-weight: 600; width: 88px; flex-shrink: 0; }
-.arow-done { flex: 1; text-align: center; font-size: 15px; font-weight: 700; color: var(--accent); }
-.arow input {
-  width: 46px; height: 40px; text-align: center; font-size: 20px; font-weight: 700;
-  background: var(--surface2); border: 1px solid var(--border);
-  border-radius: 8px; color: var(--text); transition: border-color .15s;
+.cbet-name {
+  font-size: 12px; font-weight: 600; min-width: 62px; flex-shrink: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.arow input:focus { border-color: var(--accent); outline: none; }
-.arow-sep { font-size: 20px; color: var(--text-dim); }
+.cbet-inputs { display: flex; align-items: center; gap: 3px; flex: 1; }
+.cbet-inputs input {
+  width: 32px; height: 32px; text-align: center;
+  font-size: 15px; font-weight: 700;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 6px; color: var(--text); transition: border-color .15s;
+}
+.cbet-inputs input:focus { border-color: var(--accent); outline: none; }
+.cbet-sep { font-size: 13px; color: var(--text-dim); }
+.cbet-done { font-size: 13px; font-weight: 700; color: var(--accent); flex: 1; text-align: center; }
 .btn-clear-sm {
   background: none; border: 1px solid var(--border); border-radius: 6px;
-  padding: 4px 8px; color: var(--text-dim); font-size: 12px; cursor: pointer; flex-shrink: 0;
+  padding: 3px 6px; color: var(--text-dim); font-size: 11px; cursor: pointer; flex-shrink: 0;
 }
 .btn-clear-sm:hover { border-color: var(--red); color: var(--red); }
+
+/* Bet rows accordion (Ставки tab) */
+.bet-row {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; margin-bottom: 6px; overflow: hidden;
+}
+.bet-row-hdr {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px; cursor: pointer; transition: background .15s;
+  -webkit-user-select: none; user-select: none;
+}
+.bet-row-hdr:active { background: var(--surface2); }
+.bet-row-teams {
+  flex: 1; font-size: 13px; font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.bet-row-date { font-size: 11px; color: var(--text-dim); flex-shrink: 0; }
+.bet-row-count { font-size: 11px; color: var(--accent); flex-shrink: 0; min-width: 28px; text-align: right; }
+.bet-row-chevron { font-size: 10px; color: var(--text-dim); transition: transform .2s; flex-shrink: 0; }
+.bet-row.expanded .bet-row-chevron { transform: rotate(180deg); }
+.bet-row-body {
+  display: none; padding: 10px 12px 12px;
+  border-top: 1px solid var(--border);
+}
+.bet-row.expanded .bet-row-body { display: block; }
 
 /* Match nav dots */
 .match-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
@@ -308,8 +341,21 @@ nav button.act { color: var(--accent); }
 .match-nav-btn:disabled { opacity: .3; cursor: default; }
 .match-nav-info { font-size: 12px; color: var(--text-dim); }
 
+/* Mobile tweaks for very small screens */
+@media (max-width: 360px) {
+  .pg3-name { font-size: 11px; }
+  .pg3-pts  { font-size: 22px; }
+  .cbet-name { min-width: 52px; font-size: 11px; }
+  .cbet-inputs input { width: 28px; height: 28px; font-size: 13px; }
+  .bet-row-teams { font-size: 12px; }
+  nav button { font-size: 9px; }
+}
+/* Desktop centering */
 @media (min-width: 600px) {
-  body { max-width: 560px; margin: 0 auto; }
+  body { max-width: 600px; margin: 0 auto; }
+  .pg3-pts { font-size: 30px; }
+  .cbet-grid { gap: 7px; }
+  .cbet-inputs input { width: 36px; height: 36px; font-size: 16px; }
 }
 </style>
 <!-- Firebase SDK -->
@@ -613,7 +659,7 @@ function flag(team) { return TEAMS[team] || '🏳️'; }
 let data = buildDefaultData(); // real data loaded async by initFirebase()
 let activeTab = 'lb';
 let matchFilter = 'upcoming';
-let adminUnlocked = false;
+let currentMatchIdx = -1; // -1 = auto → nearest upcoming match
 
 // ===================== TAB SWITCHING =====================
 
@@ -636,7 +682,18 @@ function renderTab(tab) {
 
 // ===================== RENDER LEADERBOARD =====================
 
-let betMatchOffset = 0; // which upcoming match to show in the bet panel
+function getSortedMatches() {
+  return [...data.matches].sort((a, b) => new Date(a.date) - new Date(b.date));
+}
+
+function getEffectiveMatchIdx() {
+  const sorted = getSortedMatches();
+  if (currentMatchIdx === -1) {
+    const idx = sorted.findIndex(m => !isLocked(m));
+    return idx >= 0 ? idx : sorted.length - 1;
+  }
+  return Math.max(0, Math.min(sorted.length - 1, currentMatchIdx));
+}
 
 function renderLeaderboard() {
   const standings = getStandings(data);
@@ -662,24 +719,26 @@ function renderLeaderboard() {
   });
   html += '</div>';
 
-  // Next match betting panel
-  const upcoming = data.matches
-    .filter(m => !isLocked(m) && !m.result)
-    .sort((a,b) => new Date(a.date) - new Date(b.date));
+  // Match panel — navigate through ALL matches, default = nearest upcoming
+  const sorted = getSortedMatches();
+  const idx = getEffectiveMatchIdx();
+  const curMatch = sorted[idx];
 
-  if (upcoming.length) {
-    betMatchOffset = Math.min(betMatchOffset, upcoming.length - 1);
-    html += '<div class="sec-label">Ставки на матч</div>';
-    if (upcoming.length > 1) {
-      html += `<div class="match-nav">
-        <button class="match-nav-btn" onclick="moveBetMatch(-1)" ${betMatchOffset===0?'disabled':''}>← Назад</button>
-        <span class="match-nav-info">${betMatchOffset+1} / ${upcoming.length}</span>
-        <button class="match-nav-btn" onclick="moveBetMatch(1)" ${betMatchOffset===upcoming.length-1?'disabled':''}>Вперёд →</button>
-      </div>`;
+  html += '<div class="sec-label">Матч</div>';
+  if (sorted.length > 1) {
+    html += `<div class="match-nav">
+      <button class="match-nav-btn" onclick="moveBetMatch(-1)" ${idx===0?'disabled':''}>← Назад</button>
+      <span class="match-nav-info">${idx+1} / ${sorted.length}</span>
+      <button class="match-nav-btn" onclick="moveBetMatch(1)" ${idx===sorted.length-1?'disabled':''}>Вперёд →</button>
+    </div>`;
+  }
+
+  if (curMatch) {
+    if (isLocked(curMatch)) {
+      html += renderMatchCard(curMatch);
+    } else {
+      html += renderMultiBetPanel(curMatch);
     }
-    html += renderMultiBetPanel(upcoming[betMatchOffset]);
-  } else {
-    html += '<div class="info-box" style="margin-top:16px">⚽ Нет предстоящих матчей</div>';
   }
 
   // Rules
@@ -695,6 +754,31 @@ function renderLeaderboard() {
   document.getElementById('lb-content').innerHTML = html;
 }
 
+function renderBetInputs(match) {
+  let html = '<div class="cbet-grid">';
+  PLAYERS.forEach(p => {
+    const pred = data.predictions[`${match.id}_${p}`];
+    if (pred) {
+      html += `<div class="cbet-cell">
+        <div class="cbet-name">${p}</div>
+        <div class="cbet-done">✅ ${pred.home}:${pred.away}</div>
+        <button class="btn-clear-sm" onclick="clearBetFor(${match.id},'${p}')">✕</button>
+      </div>`;
+    } else {
+      html += `<div class="cbet-cell">
+        <div class="cbet-name">${p}</div>
+        <div class="cbet-inputs">
+          <input type="number" id="bh-${match.id}-${p}" value="0" min="0" max="20">
+          <span class="cbet-sep">:</span>
+          <input type="number" id="ba-${match.id}-${p}" value="0" min="0" max="20">
+        </div>
+      </div>`;
+    }
+  });
+  html += '</div>';
+  return html;
+}
+
 function renderMultiBetPanel(match) {
   const leaders = getLeaders(data);
   const maxPts = getStandings(data)[0]?.total ?? 0;
@@ -707,39 +791,19 @@ function renderMultiBetPanel(match) {
     </div>`;
 
   if (maxPts > 0 && leaders.length) {
-    html += `<div class="warn-box" style="margin-bottom:12px">⚠️ Первым ставит: <strong>${leaders[0]}</strong></div>`;
+    html += `<div class="warn-box" style="margin-bottom:10px">⚠️ Первым ставит: <strong>${leaders[0]}</strong></div>`;
   }
 
-  PLAYERS.forEach(p => {
-    const pred = data.predictions[`${match.id}_${p}`];
-    if (pred) {
-      html += `<div class="arow">
-        <div class="arow-name">${p}</div>
-        <div class="arow-done">✅ ${pred.home}:${pred.away}</div>
-        <button class="btn-clear-sm" onclick="clearBetFor(${match.id},'${p}')">✕</button>
-      </div>`;
-    } else {
-      html += `<div class="arow">
-        <div class="arow-name">${p}</div>
-        <input type="number" id="bh-${match.id}-${p}" value="0" min="0" max="20">
-        <div class="arow-sep">:</div>
-        <input type="number" id="ba-${match.id}-${p}" value="0" min="0" max="20">
-      </div>`;
-    }
-  });
-
-  html += `<button class="btn" style="margin-top:14px" onclick="submitAllBets(${match.id})">
-    💾 Сохранить все ставки
-  </button></div>`;
+  html += renderBetInputs(match);
+  html += `<button class="btn" style="margin-top:10px" onclick="submitAllBets(${match.id})">💾 Сохранить все ставки</button></div>`;
 
   return html;
 }
 
 function moveBetMatch(dir) {
-  const upcoming = data.matches
-    .filter(m => !isLocked(m) && !m.result)
-    .sort((a,b) => new Date(a.date) - new Date(b.date));
-  betMatchOffset = Math.max(0, Math.min(upcoming.length - 1, betMatchOffset + dir));
+  const sorted = getSortedMatches();
+  const cur = getEffectiveMatchIdx();
+  currentMatchIdx = Math.max(0, Math.min(sorted.length - 1, cur + dir));
   renderLeaderboard();
 }
 
@@ -759,6 +823,7 @@ function submitAllBets(matchId) {
   saveData(data);
   renderLeaderboard();
   if (activeTab === 'matches') renderMatches();
+  if (activeTab === 'bets') renderBets();
 }
 
 function clearBetFor(matchId, player) {
@@ -766,6 +831,7 @@ function clearBetFor(matchId, player) {
   saveData(data);
   renderLeaderboard();
   if (activeTab === 'matches') renderMatches();
+  if (activeTab === 'bets') renderBets();
 }
 
 // ===================== RENDER MATCHES =====================
@@ -862,24 +928,40 @@ function setMatchFilter(f) {
 
 // ===================== RENDER BETS =====================
 
+function toggleBetRow(matchId) {
+  const el = document.querySelector(`.bet-row[data-mid="${matchId}"]`);
+  if (el) el.classList.toggle('expanded');
+}
+
 function renderBets() {
   const upcoming = data.matches
-    .filter(m => !isLocked(m) && !m.result)
+    .filter(m => !isLocked(m))
     .sort((a,b) => new Date(a.date) - new Date(b.date));
 
-  let html = '<div class="sec-label">Все предстоящие матчи</div>';
+  let html = '<div class="sec-label">Предстоящие матчи</div>';
 
   if (!upcoming.length) {
     html += '<div class="empty-state">Нет предстоящих матчей</div>';
   } else {
-    upcoming.slice(0, 12).forEach(m => {
-      html += renderMultiBetPanel(m);
-    });
-    if (upcoming.length > 12) {
-      html += `<div style="text-align:center;color:var(--text-dim);font-size:13px;padding:8px">
-        ...ещё ${upcoming.length - 12} матчей
+    upcoming.forEach(m => {
+      const betCount = PLAYERS.filter(p => data.predictions[`${m.id}_${p}`]).length;
+      const d = new Date(m.date);
+      const mon = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'][d.getMonth()];
+      const dateStr = `${d.getDate()} ${mon} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+
+      html += `<div class="bet-row" data-mid="${m.id}">
+        <div class="bet-row-hdr" onclick="toggleBetRow(${m.id})">
+          <span class="bet-row-teams">${flag(m.home)} ${m.home} — ${flag(m.away)} ${m.away}</span>
+          <span class="bet-row-date">${dateStr}</span>
+          <span class="bet-row-count">${betCount}/7</span>
+          <span class="bet-row-chevron">▼</span>
+        </div>
+        <div class="bet-row-body">
+          ${renderBetInputs(m)}
+          <button class="btn btn-sm" style="margin-top:8px" onclick="submitAllBets(${m.id})">💾 Сохранить</button>
+        </div>
       </div>`;
-    }
+    });
   }
 
   document.getElementById('bets-content').innerHTML = html;
@@ -889,19 +971,6 @@ function renderBets() {
 
 function renderAdmin() {
   let html = '';
-  if (!adminUnlocked) {
-    html = `<div class="admin-lock">
-      <div style="font-size:40px">🔐</div>
-      <div style="font-size:17px;font-weight:600;margin:12px 0">Режим администратора</div>
-      <div style="color:var(--text-dim);font-size:13px;margin-bottom:16px">Введи PIN-код</div>
-      <input class="admin-pin-input" type="password" id="pin-input" maxlength="6" placeholder="••••"
-        onkeyup="if(event.key==='Enter')checkPin()">
-      <button class="btn" style="max-width:160px;margin:12px auto" onclick="checkPin()">Войти</button>
-      <div id="pin-error" style="color:var(--red);font-size:13px;margin-top:8px"></div>
-    </div>`;
-    document.getElementById('admin-content').innerHTML = html;
-    return;
-  }
 
   // API sync section
   const lastSyncStr = data.lastSync
@@ -1010,16 +1079,6 @@ function renderAdmin() {
     </div>`;
 
   document.getElementById('admin-content').innerHTML = html;
-}
-
-function checkPin() {
-  const pin = document.getElementById('pin-input').value;
-  if (pin === '2026') {
-    adminUnlocked = true;
-    renderAdmin();
-  } else {
-    document.getElementById('pin-error').textContent = 'Неверный PIN';
-  }
 }
 
 function setTournamentPick(player, team) {
