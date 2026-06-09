@@ -268,8 +268,6 @@ nav button.act { color: var(--accent); }
   border-radius: 12px; padding: 12px 6px; text-align: center;
 }
 .pg3-card.pg3-gold { border-color: var(--gold); background: linear-gradient(160deg,#1e2a0a,#1e2d3e); }
-.pg3-card.pg3-silver { border-color: #aaa; }
-.pg3-card.pg3-bronze { border-color: #a0522d; }
 .pg3-rank { font-size: 13px; font-weight: 700; color: var(--text-dim); line-height: 1; }
 .pg3-name { font-size: 13px; font-weight: 700; margin: 5px 0 2px; }
 .pg3-pts { font-size: 28px; font-weight: 800; color: var(--accent); line-height: 1; }
@@ -402,7 +400,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v2.0';
+const VERSION = 'v2.1';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий'];
 
@@ -768,8 +766,8 @@ function renderLeaderboard() {
   html += '<div class="sec-label">Турнирная таблица</div>';
   html += '<div class="pg3">';
   standings.forEach((s, i) => {
-    const cls = i===0?'pg3-gold':i===1?'pg3-silver':i===2?'pg3-bronze':'';
     const isLeader = i === 0 && s.total > (standings[1]?.total ?? -1);
+    const cls = isLeader ? 'pg3-gold' : '';
     html += `<div class="pg3-card ${cls}">
       <div class="pg3-name">${s.name}${isLeader?' ★':''}</div>
       <div class="pg3-pts">${s.total}</div>
