@@ -398,7 +398,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v1.2';
+const VERSION = 'v1.3';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий'];
 
@@ -451,52 +451,6 @@ const GROUP_DATETIMES = {
   L:['2026-06-18T00:00','2026-06-18T03:00','2026-06-25T18:00','2026-06-25T21:00','2026-06-29T18:00','2026-06-29T18:00'],
 };
 
-// ===================== TEAM NAME MAPPING (EN → RU) =====================
-
-const TEAM_LOOKUP = {
-  // TLA codes (uppercase)
-  'MEX':'Мексика','RSA':'ЮАР','KOR':'Южная Корея','CZE':'Чехия',
-  'CAN':'Канада','BIH':'Босния и Герц.','QAT':'Катар','SUI':'Швейцария',
-  'BRA':'Бразилия','MAR':'Марокко','HAI':'Гаити','SCO':'Шотландия',
-  'USA':'США','PAR':'Парагвай','AUS':'Австралия','TUR':'Турция',
-  'GER':'Германия','DEU':'Германия','CUW':'Кюрасао','CIV':"Кот-д'Ивуар",
-  'ECU':'Эквадор','NED':'Нидерланды','JPN':'Япония','SWE':'Швеция',
-  'TUN':'Тунис','BEL':'Бельгия','EGY':'Египет','IRN':'Иран','IRI':'Иран',
-  'NZL':'Новая Зеландия','ESP':'Испания','CPV':'Кабо-Верде',
-  'KSA':'Саудовская Аравия','SAU':'Саудовская Аравия','URU':'Уругвай',
-  'FRA':'Франция','SEN':'Сенегал','IRQ':'Ирак','NOR':'Норвегия',
-  'ARG':'Аргентина','ALG':'Алжир','DZA':'Алжир','AUT':'Австрия',
-  'JOR':'Иордания','POR':'Португалия','COD':'ДР Конго','COG':'ДР Конго',
-  'UZB':'Узбекистан','COL':'Колумбия','ENG':'Англия','CRO':'Хорватия',
-  'GHA':'Гана','PAN':'Панама',
-  // English names (lowercase)
-  'mexico':'Мексика','south africa':'ЮАР','south korea':'Южная Корея',
-  'czech republic':'Чехия','czechia':'Чехия',
-  'canada':'Канада','bosnia and herzegovina':'Босния и Герц.','bosnia':'Босния и Герц.',
-  'qatar':'Катар','switzerland':'Швейцария','brazil':'Бразилия',
-  'morocco':'Марокко','haiti':'Гаити','scotland':'Шотландия',
-  'united states':'США','usa':'США','paraguay':'Парагвай',
-  'australia':'Австралия','turkey':'Турция','türkiye':'Турция',
-  'germany':'Германия','curaçao':'Кюрасао','curacao':'Кюрасао',
-  "ivory coast":"Кот-д'Ивуар","côte d'ivoire":"Кот-д'Ивуар","cote d'ivoire":"Кот-д'Ивуар",
-  'ecuador':'Эквадор','netherlands':'Нидерланды','japan':'Япония',
-  'sweden':'Швеция','tunisia':'Тунис','belgium':'Бельгия','egypt':'Египет',
-  'iran':'Иран','new zealand':'Новая Зеландия','spain':'Испания',
-  'cape verde':'Кабо-Верде','saudi arabia':'Саудовская Аравия',
-  'uruguay':'Уругвай','france':'Франция','senegal':'Сенегал',
-  'iraq':'Ирак','norway':'Норвегия','argentina':'Аргентина',
-  'algeria':'Алжир','austria':'Австрия','jordan':'Иордания',
-  'portugal':'Португалия','dr congo':'ДР Конго','congo dr':'ДР Конго',
-  'democratic republic of congo':'ДР Конго','republic of the congo':'ДР Конго',
-  'uzbekistan':'Узбекистан','colombia':'Колумбия','england':'Англия',
-  'croatia':'Хорватия','ghana':'Гана','panama':'Панама',
-};
-
-function lookupTeam(val) {
-  if (!val) return null;
-  return TEAM_LOOKUP[val.trim().toUpperCase()] || TEAM_LOOKUP[val.trim().toLowerCase()] || null;
-}
-
 // ===================== DATA LAYER =====================
 
 function generateDefaultMatches() {
@@ -537,8 +491,6 @@ function buildDefaultData() {
     matches: generateDefaultMatches(),
     predictions: {},
     lockedBets: {},
-    apiKey: '',
-    lastSync: null,
   };
 }
 
@@ -580,7 +532,6 @@ function initFirebase() {
       isFirstLoad = false;
       hideLoader();
       renderLeaderboard();
-      if (data.apiKey) syncTimer = setTimeout(syncResults, 3000);
     } else {
       renderTab(activeTab);
     }
@@ -954,6 +905,35 @@ function renderMatchCard(m) {
     predHtml += '</div>';
   }
 
+  // Inline result entry for locked matches
+  let resultEntryHtml = '';
+  if (locked && !m.result) {
+    resultEntryHtml = `<div style="display:flex;align-items:center;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+      <span style="font-size:12px;color:var(--text-dim);flex-shrink:0">Счёт:</span>
+      <input type="number" id="rh-${m.id}" min="0" max="20" placeholder="0"
+        style="width:44px;height:36px;text-align:center;font-size:17px;font-weight:700;
+               background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text)">
+      <span style="color:var(--text-dim)">:</span>
+      <input type="number" id="ra-${m.id}" min="0" max="20" placeholder="0"
+        style="width:44px;height:36px;text-align:center;font-size:17px;font-weight:700;
+               background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text)">
+      <button class="btn btn-sm" style="flex:1" onclick="saveResult(${m.id})">✓ Сохранить</button>
+    </div>`;
+  } else if (m.result) {
+    resultEntryHtml = `<div style="display:flex;align-items:center;gap:5px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+      <span style="font-size:11px;color:var(--text-dim);flex-shrink:0">Изменить:</span>
+      <input type="number" id="rh-${m.id}" value="${m.result.home}" min="0" max="20"
+        style="width:40px;height:32px;text-align:center;font-size:15px;font-weight:700;
+               background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text)">
+      <span style="color:var(--text-dim)">:</span>
+      <input type="number" id="ra-${m.id}" value="${m.result.away}" min="0" max="20"
+        style="width:40px;height:32px;text-align:center;font-size:15px;font-weight:700;
+               background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text)">
+      <button class="btn btn-sm" style="flex:1" onclick="saveResult(${m.id})">💾</button>
+      <button class="btn btn-sm btn-danger" style="flex-shrink:0" onclick="clearResult(${m.id})">✕</button>
+    </div>`;
+  }
+
   return `<div class="match-card">
     <div class="match-meta">
       <span class="match-group-badge">Группа ${m.group}</span>
@@ -971,6 +951,7 @@ function renderMatchCard(m) {
       </div>
     </div>
     ${predHtml}
+    ${resultEntryHtml}
   </div>`;
 }
 
@@ -987,38 +968,34 @@ function toggleBetRow(matchId) {
 }
 
 function checkBetsPin() {
-  const pin = document.getElementById('bets-pin-input').value;
+  const pin = prompt('PIN для редактирования ставок:');
   if (pin === '3220') {
     betsUnlocked = true;
     renderBets();
-  } else {
-    document.getElementById('bets-pin-error').textContent = 'Неверный PIN';
+  } else if (pin !== null) {
+    alert('Неверный PIN');
   }
 }
 
 function renderBets() {
-  if (!betsUnlocked) {
-    document.getElementById('bets-content').innerHTML = `
-      <div style="text-align:center;padding:60px 20px">
-        <div style="font-size:40px">🔐</div>
-        <div style="font-size:17px;font-weight:600;margin:12px 0">Управление ставками</div>
-        <div style="color:var(--text-dim);font-size:13px;margin-bottom:16px">Введи PIN для редактирования</div>
-        <input type="password" id="bets-pin-input" maxlength="6" placeholder="••••"
-          style="width:130px;height:52px;text-align:center;font-size:26px;letter-spacing:8px;font-weight:700;
-                 background:var(--surface2);border:2px solid var(--border);border-radius:12px;
-                 color:var(--text);display:block;margin:0 auto"
-          onkeyup="if(event.key==='Enter')checkBetsPin()">
-        <button class="btn" style="max-width:160px;margin:12px auto" onclick="checkBetsPin()">Открыть</button>
-        <div id="bets-pin-error" style="color:var(--red);font-size:13px;margin-top:8px"></div>
-      </div>`;
-    return;
-  }
-
   const upcoming = data.matches
     .filter(m => !isLocked(m))
     .sort((a,b) => new Date(a.date) - new Date(b.date));
 
-  let html = '<div class="sec-label">Управление ставками · PIN активен 🔓</div>';
+  let html = '';
+
+  // Header with edit toggle
+  if (betsUnlocked) {
+    html += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <span class="sec-label" style="margin:0">Ставки · 🔓 режим правки</span>
+      <button class="btn-clear-sm" onclick="betsUnlocked=false;renderBets()">Выйти</button>
+    </div>`;
+  } else {
+    html += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <span class="sec-label" style="margin:0">Ставки на матчи</span>
+      <button class="btn btn-sm btn-sec" onclick="checkBetsPin()">🔓 Редактировать</button>
+    </div>`;
+  }
 
   if (!upcoming.length) {
     html += '<div class="empty-state">Нет предстоящих матчей</div>';
@@ -1039,8 +1016,8 @@ function renderBets() {
           <span class="bet-row-chevron">▼</span>
         </div>
         <div class="bet-row-body">
-          ${renderBetInputs(m, true)}
-          <button class="btn btn-sm" style="margin-top:8px" onclick="submitAllBets(${m.id})">💾 Зафиксировать</button>
+          ${renderBetInputs(m, betsUnlocked)}
+          ${betsUnlocked ? `<button class="btn btn-sm" style="margin-top:8px" onclick="submitAllBets(${m.id})">💾 Зафиксировать</button>` : ''}
         </div>
       </div>`;
     });
@@ -1053,30 +1030,6 @@ function renderBets() {
 
 function renderAdmin() {
   let html = '';
-
-  // API sync section
-  const lastSyncStr = data.lastSync
-    ? 'Последняя синхронизация: ' + new Date(data.lastSync).toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'})
-    : 'Ещё не синхронизировали';
-  html += '<div class="sec-label">Автообновление результатов</div>';
-  html += `<div class="admin-section">
-    <div class="admin-section-title">🔗 API football-data.org</div>
-    <div style="background:#2a1800;border:1px solid var(--orange);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--orange);margin-bottom:10px;line-height:1.7">
-      ⚠️ <strong>Бесплатный ключ не даёт доступ к ЧМ.</strong><br>
-      Бесплатный план (Tier 1) включает только клубные лиги (АПЛ, Бундеслига и т.д.).<br>
-      Данные ЧМ 2026 — от <strong>Tier 4 (€99/мес)</strong>.<br>
-      <span style="color:var(--text-dim)">Альтернатива: вводи результаты вручную в разделе ниже.</span>
-    </div>
-    <input type="text" id="api-key-input" value="${data.apiKey || ''}"
-      placeholder="API ключ (только для платного плана)"
-      style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;
-             color:var(--text);padding:10px;font-size:13px;margin-bottom:10px;font-family:monospace">
-    <div style="display:flex;gap:8px;margin-bottom:8px">
-      <button class="btn btn-sm" style="flex:1" onclick="saveApiKey()">💾 Сохранить ключ</button>
-      <button class="btn btn-sm btn-sec" style="flex:1" onclick="syncResults()">🔄 Синхронизировать</button>
-    </div>
-    <div id="sync-status" style="font-size:12px;color:var(--text-dim)">${lastSyncStr}</div>
-  </div>`;
 
   // Tournament picks
   html += '<div class="sec-label">Ставки на чемпиона</div>';
@@ -1184,13 +1137,19 @@ function saveResult(matchId) {
   if (isNaN(h) || isNaN(a) || h < 0 || a < 0) { alert('Введи корректный счёт'); return; }
   m.result = {home: h, away: a};
   saveData(data);
-  renderAdmin();
   renderLeaderboard();
+  renderMatches();
+  if (activeTab === 'admin') renderAdmin();
 }
 
 function clearResult(matchId) {
   const m = data.matches.find(x => x.id === matchId);
-  if (m) { m.result = null; saveData(data); renderAdmin(); renderLeaderboard(); }
+  if (!m) return;
+  m.result = null;
+  saveData(data);
+  renderLeaderboard();
+  renderMatches();
+  if (activeTab === 'admin') renderAdmin();
 }
 
 function resetAll() {
@@ -1199,86 +1158,6 @@ function resetAll() {
   saveData(data);
   renderLeaderboard();
   renderAdmin();
-}
-
-// ===================== API SYNC =====================
-
-let syncTimer = null;
-
-async function syncResults() {
-  const apiKey = data.apiKey;
-  if (!apiKey) { showSyncMsg('Сначала введи API ключ', 'error'); return; }
-
-  showSyncMsg('⏳ Загружаю результаты...', 'loading');
-
-  try {
-    const res = await fetch(
-      'https://api.football-data.org/v4/competitions/WC/matches?status=FINISHED',
-      { headers: { 'X-Auth-Token': apiKey } }
-    );
-
-    if (res.status === 403) { showSyncMsg('❌ Нет доступа к ЧМ 2026 — нужен Tier 4 план (€99/мес)', 'error'); return; }
-    if (res.status === 401) { showSyncMsg('❌ Неверный API ключ', 'error'); return; }
-    if (res.status === 429) { showSyncMsg('⚠️ Слишком много запросов — подожди минуту', 'error'); return; }
-    if (!res.ok) { showSyncMsg(`❌ Ошибка сервера: ${res.status}`, 'error'); return; }
-
-    const json = await res.json();
-    const apiMatches = json.matches || [];
-
-    let updated = 0;
-    apiMatches.forEach(am => {
-      if (am.status !== 'FINISHED') return;
-      const score = am.score?.fullTime;
-      if (score?.home == null || score?.away == null) return;
-
-      const homeRu = lookupTeam(am.homeTeam?.tla) || lookupTeam(am.homeTeam?.shortName) || lookupTeam(am.homeTeam?.name);
-      const awayRu = lookupTeam(am.awayTeam?.tla) || lookupTeam(am.awayTeam?.shortName) || lookupTeam(am.awayTeam?.name);
-      if (!homeRu || !awayRu) return;
-
-      const match = data.matches.find(m => m.home === homeRu && m.away === awayRu);
-      if (match && (match.result?.home !== score.home || match.result?.away !== score.away)) {
-        match.result = { home: score.home, away: score.away };
-        updated++;
-      }
-    });
-
-    data.lastSync = new Date().toISOString();
-    saveData(data);
-
-    const t = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-    showSyncMsg(`✅ Обновлено: ${updated} матч(ей) · ${t}`, 'ok');
-
-    if (updated > 0) {
-      renderLeaderboard();
-      if (activeTab === 'matches') renderMatches();
-      if (activeTab === 'bets') renderBets();
-    }
-
-    // Auto-sync every 5 min while page is open
-    clearTimeout(syncTimer);
-    syncTimer = setTimeout(syncResults, 5 * 60 * 1000);
-
-  } catch (e) {
-    const msg = (e instanceof TypeError)
-      ? '❌ Запрос заблокирован браузером (CORS). Скорее всего бесплатный ключ не даёт доступ к ЧМ — вводи результаты вручную.'
-      : '❌ Ошибка: ' + e.message;
-    showSyncMsg(msg, 'error');
-  }
-}
-
-function showSyncMsg(msg, type) {
-  const el = document.getElementById('sync-status');
-  if (!el) return;
-  el.textContent = msg;
-  el.style.color = type === 'error' ? 'var(--red)' : type === 'ok' ? 'var(--accent)' : 'var(--text-dim)';
-}
-
-function saveApiKey() {
-  const key = (document.getElementById('api-key-input')?.value || '').trim();
-  data.apiKey = key;
-  saveData(data);
-  if (key) syncResults();
-  else showSyncMsg('Ключ удалён', 'error');
 }
 
 // ===================== INIT =====================
