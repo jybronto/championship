@@ -373,6 +373,9 @@ nav button.act { color: var(--accent); }
 </head>
 <body>
 
+<!-- Team autocomplete list (populated on init) -->
+<datalist id="teams-list"></datalist>
+
 <div id="loader" style="position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:14px">
   <div style="font-size:48px">⚽</div>
   <div style="color:var(--accent);font-size:16px;font-weight:600">Загрузка...</div>
@@ -403,7 +406,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v2.8';
+const VERSION = 'v2.9';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий'];
 
@@ -1299,9 +1302,11 @@ function renderPlayoff() {
         <div style="font-size:10px;color:var(--text-dim);margin-bottom:5px">${fmtDate(m.date)}</div>
         <div style="display:flex;gap:6px;align-items:center">
           <input type="text" id="ph-${m.id}" value="${m.home}" placeholder="Команда 1"
+            list="teams-list" autocomplete="off"
             style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:6px 8px;font-size:12px">
           <span style="color:var(--text-dim);font-size:12px">${hasResult ? `<strong>${m.result.home}:${m.result.away}</strong>` : '—'}</span>
           <input type="text" id="pa-${m.id}" value="${m.away}" placeholder="Команда 2"
+            list="teams-list" autocomplete="off"
             style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:6px 8px;font-size:12px">
           <button class="btn btn-sm" onclick="savePlayoffTeams(${m.id})" style="flex-shrink:0">💾</button>
         </div>
@@ -1465,6 +1470,13 @@ function resetAll() {
 
 function init() {
   document.getElementById('version-badge').textContent = VERSION;
+  // Populate team autocomplete datalist
+  const dl = document.getElementById('teams-list');
+  Object.keys(TEAMS).sort().forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t;
+    dl.appendChild(opt);
+  });
   initFirebase(); // loads data, then calls renderLeaderboard + hideLoader
 }
 
