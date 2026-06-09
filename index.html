@@ -398,7 +398,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v1.6';
+const VERSION = 'v1.7';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий'];
 
@@ -1168,6 +1168,9 @@ function clearResult(matchId) {
 }
 
 function resetAll() {
+  const pin = prompt('Введи PIN для сброса данных:');
+  if (pin === null) return;
+  if (pin !== '3220') { alert('Неверный PIN'); return; }
   if (!confirm('Удалить ВСЕ данные? Это нельзя отменить!')) return;
   data = buildDefaultData();
   saveData(data);
