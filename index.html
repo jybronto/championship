@@ -402,7 +402,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v1.9';
+const VERSION = 'v2.0';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий'];
 
@@ -771,7 +771,6 @@ function renderLeaderboard() {
     const cls = i===0?'pg3-gold':i===1?'pg3-silver':i===2?'pg3-bronze':'';
     const isLeader = i === 0 && s.total > (standings[1]?.total ?? -1);
     html += `<div class="pg3-card ${cls}">
-      <div class="pg3-rank">${i+1}</div>
       <div class="pg3-name">${s.name}${isLeader?' ★':''}</div>
       <div class="pg3-pts">${s.total}</div>
       <div class="pg3-sub">${s.team ? `${flag(s.team)} ${s.team}` : '—'}</div>
