@@ -377,6 +377,7 @@ nav button.act { color: var(--accent); }
 
 <header>
   <div class="header-title">⚽ ЧМ 2026</div>
+  <div id="version-badge" style="font-size:11px;color:var(--text-dim);font-family:monospace"></div>
 </header>
 
 <main>
@@ -396,6 +397,8 @@ nav button.act { color: var(--accent); }
 
 <script>
 // ===================== CONSTANTS =====================
+
+const VERSION = 'v1.0';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий'];
 
@@ -1227,6 +1230,7 @@ function saveApiKey() {
 // ===================== INIT =====================
 
 function init() {
+  document.getElementById('version-badge').textContent = VERSION;
   initFirebase(); // loads data, then calls renderLeaderboard + hideLoader
 }
 
