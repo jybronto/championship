@@ -398,7 +398,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v1.5';
+const VERSION = 'v1.6';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий'];
 
@@ -909,9 +909,9 @@ function renderMatchCard(m) {
     predHtml += '</div>';
   }
 
-  // Inline result entry for locked matches
+  // Inline result entry — available for any match (admin can enter results anytime)
   let resultEntryHtml = '';
-  if (locked && !m.result) {
+  if (!m.result) {
     resultEntryHtml = `<div style="display:flex;align-items:center;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
       <span style="font-size:12px;color:var(--text-dim);flex-shrink:0">Счёт:</span>
       <input type="number" id="rh-${m.id}" min="0" max="20" placeholder="0" onfocus="this.select()"
