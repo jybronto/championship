@@ -406,7 +406,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.8';
+const VERSION = 'v3.9';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий'];
 
@@ -854,14 +854,14 @@ function renderBetInputs(match, adminMode) {
       html += `<div class="cbet-cell">
         <div class="cbet-name">${p}</div>
         <div class="cbet-inputs">
-          <input type="number" id="bh-${match.id}-${p}" value="0" min="0" max="20"
+          <input type="text" inputmode="numeric" pattern="[0-9]*" id="bh-${match.id}-${p}" value="0"
             onfocus="this.dataset.prev=this.value;this.value=''"
-            onblur="if(this.value==='')this.value=this.dataset.prev||0"
+            onblur="if(this.value.trim()==='')this.value=this.dataset.prev||'0'"
             oninput="this.dataset.touched='1'">
           <span class="cbet-sep">:</span>
-          <input type="number" id="ba-${match.id}-${p}" value="0" min="0" max="20"
+          <input type="text" inputmode="numeric" pattern="[0-9]*" id="ba-${match.id}-${p}" value="0"
             onfocus="this.dataset.prev=this.value;this.value=''"
-            onblur="if(this.value==='')this.value=this.dataset.prev||0"
+            onblur="if(this.value.trim()==='')this.value=this.dataset.prev||'0'"
             oninput="this.dataset.touched='1'">
         </div>
         <button class="btn-save-sm" onclick="saveBetFor(${match.id},'${p}')">✓</button>
@@ -1221,9 +1221,13 @@ function renderAdmin() {
         <div class="admin-section-title">Группа ${m.group} · ${fmtDate(m.date)}</div>
         <div class="result-row">
           <div class="team-name">${flag(m.home)} ${m.home}</div>
-          <input type="number" id="rh-${m.id}" min="0" max="20" value="" placeholder="0">
+          <input type="text" inputmode="numeric" pattern="[0-9]*" id="rh-${m.id}" value="0"
+            onfocus="this.dataset.prev=this.value;this.value=''"
+            onblur="if(this.value.trim()==='')this.value=this.dataset.prev||'0'">
           <div style="color:var(--text-dim)">:</div>
-          <input type="number" id="ra-${m.id}" min="0" max="20" value="" placeholder="0">
+          <input type="text" inputmode="numeric" pattern="[0-9]*" id="ra-${m.id}" value="0"
+            onfocus="this.dataset.prev=this.value;this.value=''"
+            onblur="if(this.value.trim()==='')this.value=this.dataset.prev||'0'">
           <div class="team-name" style="text-align:right">${flag(m.away)} ${m.away}</div>
         </div>
         <button class="btn btn-sm" onclick="saveResult(${m.id})">Сохранить результат</button>
@@ -1243,9 +1247,13 @@ function renderAdmin() {
       html += `<div class="admin-section">
         <div class="admin-section-title" style="font-size:12px">${flag(m.home)} ${m.home} ${m.result.home}:${m.result.away} ${flag(m.away)} ${m.away}</div>
         <div class="result-row">
-          <input type="number" id="rh-${m.id}" min="0" max="20" value="${m.result.home}">
+          <input type="text" inputmode="numeric" pattern="[0-9]*" id="rh-${m.id}" value="${m.result.home}"
+            onfocus="this.dataset.prev=this.value;this.value=''"
+            onblur="if(this.value.trim()==='')this.value=this.dataset.prev||'0'">
           <div style="color:var(--text-dim)">:</div>
-          <input type="number" id="ra-${m.id}" min="0" max="20" value="${m.result.away}">
+          <input type="text" inputmode="numeric" pattern="[0-9]*" id="ra-${m.id}" value="${m.result.away}"
+            onfocus="this.dataset.prev=this.value;this.value=''"
+            onblur="if(this.value.trim()==='')this.value=this.dataset.prev||'0'">
           <button class="btn btn-sm" style="flex-shrink:0" onclick="saveResult(${m.id})">💾</button>
           <button class="btn btn-sm btn-danger" style="flex-shrink:0" onclick="clearResult(${m.id})">✕</button>
         </div>
@@ -1319,18 +1327,18 @@ function renderPlayoff() {
       const hasResult = !!m.result;
       html += `<div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--border)">
         <div style="font-size:10px;color:var(--text-dim);margin-bottom:5px">${fmtDate(m.date)}</div>
-        <div style="display:flex;gap:6px;align-items:center">
+        <div style="display:flex;gap:6px;align-items:center;min-width:0">
           <input type="text" id="ph-${m.id}" value="${m.home}" placeholder="Команда 1"
             list="teams-list" autocomplete="off"
             onfocus="this.dataset.prev=this.value;this.value=''"
             onblur="if(!this.value.trim())this.value=this.dataset.prev"
-            style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:6px 8px;font-size:12px">
-          <span style="color:var(--text-dim);font-size:12px">${hasResult ? `<strong>${m.result.home}:${m.result.away}</strong>` : '—'}</span>
+            style="flex:1;min-width:0;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:6px 8px;font-size:12px">
+          <span style="color:var(--text-dim);font-size:12px;flex-shrink:0">${hasResult ? `<strong>${m.result.home}:${m.result.away}</strong>` : '—'}</span>
           <input type="text" id="pa-${m.id}" value="${m.away}" placeholder="Команда 2"
             list="teams-list" autocomplete="off"
             onfocus="this.dataset.prev=this.value;this.value=''"
             onblur="if(!this.value.trim())this.value=this.dataset.prev"
-            style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:6px 8px;font-size:12px">
+            style="flex:1;min-width:0;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:6px 8px;font-size:12px">
           <button class="btn btn-sm" onclick="savePlayoffTeams(${m.id})" style="flex-shrink:0">💾</button>
         </div>
       </div>`;
