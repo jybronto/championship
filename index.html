@@ -401,7 +401,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v2.3';
+const VERSION = 'v2.4';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий'];
 
@@ -748,11 +748,32 @@ function getSortedMatches() {
 
 function getEffectiveMatchIdx() {
   const sorted = getSortedMatches();
-  if (currentMatchIdx === -1) {
-    const idx = sorted.findIndex(m => !isLocked(m));
+
+  // Helper: index of nearest upcoming (non-locked) match
+  function nearestUpcoming(fromIdx) {
+    // First try from current position forward
+    let idx = sorted.findIndex((m, i) => i >= fromIdx && !isLocked(m));
+    if (idx >= 0) return idx;
+    // Fall back to any upcoming
+    idx = sorted.findIndex(m => !isLocked(m));
     return idx >= 0 ? idx : sorted.length - 1;
   }
-  return Math.max(0, Math.min(sorted.length - 1, currentMatchIdx));
+
+  if (currentMatchIdx === -1) {
+    return nearestUpcoming(0);
+  }
+
+  const idx = Math.max(0, Math.min(sorted.length - 1, currentMatchIdx));
+  const m = sorted[idx];
+
+  // If the manually-selected match is fully done (has result), auto-advance to next upcoming
+  if (m && isLocked(m) && m.result) {
+    const next = nearestUpcoming(idx + 1);
+    currentMatchIdx = next; // update so nav buttons stay consistent
+    return next;
+  }
+
+  return idx;
 }
 
 function renderLeaderboard() {
