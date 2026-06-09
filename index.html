@@ -406,7 +406,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.10';
+const VERSION = 'v3.11';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий'];
 
@@ -847,7 +847,7 @@ function renderBetInputs(match, adminMode) {
     if (pred) {
       html += `<div class="cbet-cell">
         <div class="cbet-name">${p}</div>
-        <div class="cbet-done">${betLocked ? '🔒' : '✅'} ${pred.home}:${pred.away}</div>
+        <div class="cbet-done">${betLocked ? '🔒' : '✅'} ${pred.home} : ${pred.away}</div>
         ${!betLocked ? `<button class="btn-clear-sm" onclick="clearBetFor(${match.id},'${p}')">✕</button>` : ''}
       </div>`;
     } else if (!betLocked) {
@@ -1063,7 +1063,7 @@ function renderMatchCard(m) {
         predHtml += `<span class="pred-chip no-bet" title="${p}: нет ставки">${p} –</span>`;
         return;
       }
-      const score = `${pred.home}:${pred.away}`;
+      const score = `${pred.home} : ${pred.away}`;
       if (m.result) {
         const pts = calcPoints(pred, m.result);
         const cls = pts===3?'pts3':pts===2?'pts2':pts===1?'pts1':'pts0';
@@ -1251,7 +1251,7 @@ function renderAdmin() {
     html += '<div class="sec-label">Изменить результаты</div>';
     withResult.forEach(m => {
       html += `<div class="admin-section">
-        <div class="admin-section-title" style="font-size:12px">${flag(m.home)} ${m.home} ${m.result.home}:${m.result.away} ${flag(m.away)} ${m.away}</div>
+        <div class="admin-section-title" style="font-size:12px">${flag(m.home)} ${m.home} ${m.result.home} : ${m.result.away} ${flag(m.away)} ${m.away}</div>
         <div class="result-row">
           <input type="text" inputmode="numeric" pattern="[0-9]*" id="rh-${m.id}" value="${m.result.home}"
             onfocus="this.dataset.prev=this.value;this.value=''"
@@ -1339,7 +1339,7 @@ function renderPlayoff() {
             onfocus="this.dataset.prev=this.value;this.value=''"
             onblur="if(!this.value.trim())this.value=this.dataset.prev"
             style="flex:1;min-width:0;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:6px 8px;font-size:12px">
-          <span style="color:var(--text-dim);font-size:12px;flex-shrink:0">${hasResult ? `<strong>${m.result.home}:${m.result.away}</strong>` : '—'}</span>
+          <span style="color:var(--text-dim);font-size:12px;flex-shrink:0">${hasResult ? `<strong>${m.result.home} : ${m.result.away}</strong>` : '—'}</span>
           <input type="text" id="pa-${m.id}" value="${m.away}" placeholder="Команда 2"
             list="teams-list" autocomplete="off"
             onfocus="this.dataset.prev=this.value;this.value=''"
