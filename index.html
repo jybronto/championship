@@ -733,10 +733,10 @@ function renderBetInputs(match, adminMode) {
         <div class="cbet-name">${p}</div>
         <div class="cbet-inputs">
           <input type="number" id="bh-${match.id}-${p}" value="0" min="0" max="20"
-            oninput="this.dataset.touched='1'">
+            onfocus="this.select()" oninput="this.dataset.touched='1'">
           <span class="cbet-sep">:</span>
           <input type="number" id="ba-${match.id}-${p}" value="0" min="0" max="20"
-            oninput="this.dataset.touched='1'">
+            onfocus="this.select()" oninput="this.dataset.touched='1'">
         </div>
         <button class="btn-save-sm" onclick="saveBetFor(${match.id},'${p}')">✓</button>
       </div>`;
@@ -910,11 +910,11 @@ function renderMatchCard(m) {
   if (locked && !m.result) {
     resultEntryHtml = `<div style="display:flex;align-items:center;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
       <span style="font-size:12px;color:var(--text-dim);flex-shrink:0">Счёт:</span>
-      <input type="number" id="rh-${m.id}" min="0" max="20" placeholder="0"
+      <input type="number" id="rh-${m.id}" min="0" max="20" placeholder="0" onfocus="this.select()"
         style="width:44px;height:36px;text-align:center;font-size:17px;font-weight:700;
                background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text)">
       <span style="color:var(--text-dim)">:</span>
-      <input type="number" id="ra-${m.id}" min="0" max="20" placeholder="0"
+      <input type="number" id="ra-${m.id}" min="0" max="20" placeholder="0" onfocus="this.select()"
         style="width:44px;height:36px;text-align:center;font-size:17px;font-weight:700;
                background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text)">
       <button class="btn btn-sm" style="flex:1" onclick="saveResult(${m.id})">✓ Сохранить</button>
@@ -922,11 +922,11 @@ function renderMatchCard(m) {
   } else if (m.result) {
     resultEntryHtml = `<div style="display:flex;align-items:center;gap:5px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
       <span style="font-size:11px;color:var(--text-dim);flex-shrink:0">Изменить:</span>
-      <input type="number" id="rh-${m.id}" value="${m.result.home}" min="0" max="20"
+      <input type="number" id="rh-${m.id}" value="${m.result.home}" min="0" max="20" onfocus="this.select()"
         style="width:40px;height:32px;text-align:center;font-size:15px;font-weight:700;
                background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text)">
       <span style="color:var(--text-dim)">:</span>
-      <input type="number" id="ra-${m.id}" value="${m.result.away}" min="0" max="20"
+      <input type="number" id="ra-${m.id}" value="${m.result.away}" min="0" max="20" onfocus="this.select()"
         style="width:40px;height:32px;text-align:center;font-size:15px;font-weight:700;
                background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text)">
       <button class="btn btn-sm" style="flex:1" onclick="saveResult(${m.id})">💾</button>
