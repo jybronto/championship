@@ -401,7 +401,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v2.4';
+const VERSION = 'v2.5';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий'];
 
@@ -1008,12 +1008,27 @@ function renderMatchCard(m) {
   const isPlayoff = !!m.round;
   const badgeLabel = isPlayoff ? (PLAYOFF_ROUNDS[m.round] || m.round) : `Группа ${m.group}`;
 
-  let scoreHtml;
-  if (m.result) {
-    scoreHtml = `<div class="match-result-score">${m.result.home}:${m.result.away}</div>`;
-  } else {
-    scoreHtml = `<div class="match-vs">${locked?'⏱':'⚡'}<br><small>${locked?'Идёт':'vs'}</small></div>`;
-  }
+  // Score inputs always in the center column (where VS used to be)
+  const hVal = m.result ? m.result.home : '';
+  const aVal = m.result ? m.result.away : '';
+  const inputStyle = `width:40px;height:38px;text-align:center;font-size:18px;font-weight:700;
+    background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text)`;
+  const centerHtml = `
+    <div style="display:flex;flex-direction:column;align-items:center;gap:5px;flex-shrink:0">
+      <div style="display:flex;align-items:center;gap:5px">
+        <input type="number" id="rh-${m.id}" value="${hVal}" min="0" max="20" placeholder="0"
+          onfocus="this.select()" style="${inputStyle}">
+        <span style="font-size:18px;font-weight:700;color:var(--text-dim)">:</span>
+        <input type="number" id="ra-${m.id}" value="${aVal}" min="0" max="20" placeholder="0"
+          onfocus="this.select()" style="${inputStyle}">
+      </div>
+      <div style="display:flex;gap:4px">
+        <button class="btn btn-sm" onclick="saveResult(${m.id})"
+          style="padding:3px 12px;font-size:12px">✓</button>
+        ${m.result ? `<button class="btn btn-sm btn-danger" onclick="clearResult(${m.id})"
+          style="padding:3px 9px;font-size:12px">✕</button>` : ''}
+      </div>
+    </div>`;
 
   let predHtml = '';
   if (PLAYERS.some(p => data.predictions[`${m.id}_${p}`] || m.result)) {
@@ -1036,35 +1051,6 @@ function renderMatchCard(m) {
     predHtml += '</div>';
   }
 
-  // Inline result entry — only for matches that have already started
-  let resultEntryHtml = '';
-  if (locked && !m.result) {
-    resultEntryHtml = `<div style="display:flex;align-items:center;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
-      <span style="font-size:12px;color:var(--text-dim);flex-shrink:0">Счёт:</span>
-      <input type="number" id="rh-${m.id}" min="0" max="20" placeholder="0" onfocus="this.select()"
-        style="width:44px;height:36px;text-align:center;font-size:17px;font-weight:700;
-               background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text)">
-      <span style="color:var(--text-dim)">:</span>
-      <input type="number" id="ra-${m.id}" min="0" max="20" placeholder="0" onfocus="this.select()"
-        style="width:44px;height:36px;text-align:center;font-size:17px;font-weight:700;
-               background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text)">
-      <button class="btn btn-sm" style="flex:1" onclick="saveResult(${m.id})">✓ Сохранить</button>
-    </div>`;
-  } else if (m.result) {
-    resultEntryHtml = `<div style="display:flex;align-items:center;gap:5px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
-      <span style="font-size:11px;color:var(--text-dim);flex-shrink:0">Изменить:</span>
-      <input type="number" id="rh-${m.id}" value="${m.result.home}" min="0" max="20" onfocus="this.select()"
-        style="width:40px;height:32px;text-align:center;font-size:15px;font-weight:700;
-               background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text)">
-      <span style="color:var(--text-dim)">:</span>
-      <input type="number" id="ra-${m.id}" value="${m.result.away}" min="0" max="20" onfocus="this.select()"
-        style="width:40px;height:32px;text-align:center;font-size:15px;font-weight:700;
-               background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text)">
-      <button class="btn btn-sm" style="flex:1" onclick="saveResult(${m.id})">💾</button>
-      <button class="btn btn-sm btn-danger" style="flex-shrink:0" onclick="clearResult(${m.id})">✕</button>
-    </div>`;
-  }
-
   return `<div class="match-card">
     <div class="match-meta">
       <span class="match-group-badge${isPlayoff?' playoff-badge':''}">${badgeLabel}</span>
@@ -1075,14 +1061,13 @@ function renderMatchCard(m) {
         <div class="match-flag">${flag(m.home)}</div>
         <div class="match-team-name">${m.home}</div>
       </div>
-      ${scoreHtml}
+      ${centerHtml}
       <div class="match-team-side">
         <div class="match-flag">${flag(m.away)}</div>
         <div class="match-team-name">${m.away}</div>
       </div>
     </div>
     ${predHtml}
-    ${resultEntryHtml}
   </div>`;
 }
 
