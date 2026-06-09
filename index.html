@@ -406,7 +406,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.1';
+const VERSION = 'v3.2';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий'];
 
@@ -1313,11 +1313,15 @@ function renderPlayoff() {
         <div style="font-size:10px;color:var(--text-dim);margin-bottom:5px">${fmtDate(m.date)}</div>
         <div style="display:flex;gap:6px;align-items:center">
           <input type="text" id="ph-${m.id}" value="${m.home}" placeholder="Команда 1"
-            list="teams-list" autocomplete="off" onfocus="this.select()"
+            list="teams-list" autocomplete="off"
+            onfocus="this.dataset.prev=this.value;this.value=''"
+            onblur="if(!this.value.trim())this.value=this.dataset.prev"
             style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:6px 8px;font-size:12px">
           <span style="color:var(--text-dim);font-size:12px">${hasResult ? `<strong>${m.result.home}:${m.result.away}</strong>` : '—'}</span>
           <input type="text" id="pa-${m.id}" value="${m.away}" placeholder="Команда 2"
-            list="teams-list" autocomplete="off" onfocus="this.select()"
+            list="teams-list" autocomplete="off"
+            onfocus="this.dataset.prev=this.value;this.value=''"
+            onblur="if(!this.value.trim())this.value=this.dataset.prev"
             style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:6px 8px;font-size:12px">
           <button class="btn btn-sm" onclick="savePlayoffTeams(${m.id})" style="flex-shrink:0">💾</button>
         </div>
