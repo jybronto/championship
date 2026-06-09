@@ -398,7 +398,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v1.4';
+const VERSION = 'v1.5';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий'];
 
@@ -805,19 +805,20 @@ function submitAllBets(matchId) {
   const m = data.matches.find(x => x.id === matchId);
   if (!m || isLocked(m)) { alert('Матч уже начался! Ставки закрыты.'); return; }
 
-  let saved = 0;
+  // Save newly touched inputs (players without a bet yet)
   PLAYERS.forEach(p => {
     const hEl = document.getElementById(`bh-${matchId}-${p}`);
     const aEl = document.getElementById(`ba-${matchId}-${p}`);
-    if (!hEl || !aEl) return; // already has a bet
-    if (!hEl.dataset.touched && !aEl.dataset.touched) return; // not touched — skip
+    if (!hEl || !aEl) return; // already has a bet — input not rendered
+    if (!hEl.dataset.touched && !aEl.dataset.touched) return; // untouched — skip
     const h = Math.max(0, Math.min(20, parseInt(hEl.value) || 0));
     const a = Math.max(0, Math.min(20, parseInt(aEl.value) || 0));
     data.predictions[`${matchId}_${p}`] = { home: h, away: a, ts: Date.now() };
-    saved++;
   });
 
-  if (!saved) { alert('Никто не заполнил ставку. Используй ✓ рядом с именем игрока.'); return; }
+  // Lock only if at least one player has a bet (new or previously saved)
+  const anyBet = PLAYERS.some(p => data.predictions[`${matchId}_${p}`]);
+  if (!anyBet) { alert('Никто ещё не сделал ставку.'); return; }
   data.lockedBets[matchId] = true;
   saveData(data);
   renderLeaderboard();
@@ -841,8 +842,8 @@ function clearBetFor(matchId, player) {
 // ===================== RENDER MATCHES =====================
 
 function renderMatches() {
-  const filters = ['upcoming','today','all','A','B','C','D','E','F','G','H','I','J','K','L'];
-  const filterLabels = {upcoming:'Предстоящие',today:'Сегодня',all:'Все'};
+  const filters = ['upcoming','past','today','all','A','B','C','D','E','F','G','H','I','J','K','L'];
+  const filterLabels = {upcoming:'Предстоящие',past:'Прошедшие',today:'Сегодня',all:'Все'};
   filters.slice(3).forEach(g => filterLabels[g] = 'Группа '+g);
 
   let barHtml = '<div class="filter-bar">';
@@ -854,6 +855,7 @@ function renderMatches() {
   const now = new Date();
   let filtered = data.matches.filter(m => {
     if (matchFilter === 'upcoming') return new Date(m.date) > now;
+    if (matchFilter === 'past') return new Date(m.date) <= now;
     if (matchFilter === 'today') {
       const d = new Date(m.date);
       return d.getDate() === now.getDate() && d.getMonth() === now.getMonth();
@@ -862,7 +864,9 @@ function renderMatches() {
     return m.group === matchFilter;
   });
 
-  filtered.sort((a,b) => new Date(a.date) - new Date(b.date));
+  filtered.sort((a,b) => matchFilter === 'past'
+    ? new Date(b.date) - new Date(a.date)   // past: newest first
+    : new Date(a.date) - new Date(b.date)); // others: oldest first
 
   let html = barHtml;
   if (!filtered.length) {
@@ -978,6 +982,11 @@ function checkBetsPin() {
 }
 
 function renderBets() {
+  // Remember which accordion rows are currently open so re-render doesn't collapse them
+  const expandedIds = new Set(
+    [...document.querySelectorAll('.bet-row.expanded')].map(el => el.dataset.mid)
+  );
+
   const upcoming = data.matches
     .filter(m => !isLocked(m))
     .sort((a,b) => new Date(a.date) - new Date(b.date));
@@ -1024,6 +1033,12 @@ function renderBets() {
   }
 
   document.getElementById('bets-content').innerHTML = html;
+
+  // Restore previously expanded rows
+  expandedIds.forEach(id => {
+    const el = document.querySelector(`.bet-row[data-mid="${id}"]`);
+    if (el) el.classList.add('expanded');
+  });
 }
 
 // ===================== RENDER ADMIN =====================
