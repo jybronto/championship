@@ -312,8 +312,16 @@ nav button.act { color: var(--accent); }
   body { max-width: 560px; margin: 0 auto; }
 }
 </style>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
 <body>
+
+<div id="loader" style="position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:14px">
+  <div style="font-size:48px">⚽</div>
+  <div style="color:var(--accent);font-size:16px;font-weight:600">Загрузка...</div>
+</div>
 
 <header>
   <div class="header-title">⚽ ЧМ 2026</div>
@@ -452,30 +460,91 @@ function generateDefaultMatches() {
   return matches;
 }
 
-function getData() {
-  try {
-    const raw = localStorage.getItem('wc2026');
-    if (raw) return JSON.parse(raw);
-  } catch(e) {}
-  return initData();
-}
+// ---- Fill in after creating Firebase project ----
+const FIREBASE_CONFIG = {
+  apiKey:            "YOUR_API_KEY",
+  authDomain:        "YOUR_PROJECT.firebaseapp.com",
+  databaseURL:       "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+  projectId:         "YOUR_PROJECT",
+  storageBucket:     "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId:             "YOUR_APP_ID",
+};
+// -------------------------------------------------
 
-function initData() {
-  const data = {
-    tournamentPicks: {},  // { playerName: teamName }
+let stateRef = null;
+let isFirstLoad = true;
+
+function buildDefaultData() {
+  return {
+    tournamentPicks: {},
     tournamentWinner: null,
     matches: generateDefaultMatches(),
-    predictions: {},      // key: `${matchId}_${player}` → {home, away, ts}
+    predictions: {},
     apiKey: '',
     lastSync: null,
-    adminUnlocked: false,
   };
-  saveData(data);
-  return data;
+}
+
+function normalizeData(val) {
+  // Firebase turns arrays into objects with numeric keys — convert back
+  if (val.matches && !Array.isArray(val.matches)) {
+    val.matches = Object.values(val.matches);
+  }
+  if (!val.predictions)    val.predictions    = {};
+  if (!val.tournamentPicks) val.tournamentPicks = {};
+  return val;
+}
+
+function initFirebase() {
+  const configured = FIREBASE_CONFIG.apiKey !== 'YOUR_API_KEY';
+
+  if (!configured) {
+    // No Firebase yet — fall back to localStorage
+    try { data = JSON.parse(localStorage.getItem('wc2026')) || buildDefaultData(); }
+    catch(e) { data = buildDefaultData(); }
+    hideLoader();
+    return;
+  }
+
+  firebase.initializeApp(FIREBASE_CONFIG);
+  stateRef = firebase.database().ref('wc2026');
+
+  stateRef.on('value', snapshot => {
+    const val = snapshot.val();
+    if (!val) {
+      data = buildDefaultData();
+      stateRef.set(data);
+    } else {
+      data = normalizeData(val);
+    }
+
+    if (isFirstLoad) {
+      isFirstLoad = false;
+      hideLoader();
+      renderLeaderboard();
+      if (data.apiKey) syncTimer = setTimeout(syncResults, 3000);
+    } else {
+      renderTab(activeTab);
+    }
+  }, err => {
+    console.error('Firebase:', err);
+    data = buildDefaultData();
+    hideLoader();
+  });
 }
 
 function saveData(d) {
-  localStorage.setItem('wc2026', JSON.stringify(d));
+  data = d;
+  if (stateRef) {
+    stateRef.set(d);          // syncs to all connected devices instantly
+  } else {
+    localStorage.setItem('wc2026', JSON.stringify(d));
+  }
+}
+
+function hideLoader() {
+  document.getElementById('loader').style.display = 'none';
 }
 
 // ===================== BUSINESS LOGIC =====================
@@ -541,7 +610,7 @@ function flag(team) { return TEAMS[team] || '🏳️'; }
 
 // ===================== STATE =====================
 
-let data = getData();
+let data = buildDefaultData(); // real data loaded async by initFirebase()
 let activeTab = 'lb';
 let matchFilter = 'upcoming';
 let adminUnlocked = false;
@@ -986,8 +1055,8 @@ function clearResult(matchId) {
 
 function resetAll() {
   if (!confirm('Удалить ВСЕ данные? Это нельзя отменить!')) return;
-  localStorage.removeItem('wc2026');
-  data = getData();
+  data = buildDefaultData();
+  saveData(data);
   renderLeaderboard();
   renderAdmin();
 }
@@ -1071,10 +1140,7 @@ function saveApiKey() {
 // ===================== INIT =====================
 
 function init() {
-  renderLeaderboard();
-  if (data.apiKey) {
-    syncTimer = setTimeout(syncResults, 3000);
-  }
+  initFirebase(); // loads data, then calls renderLeaderboard + hideLoader
 }
 
 init();
