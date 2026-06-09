@@ -361,6 +361,7 @@ nav button.act { color: var(--accent); }
 /* Desktop centering */
 @media (min-width: 600px) {
   body { max-width: 600px; margin: 0 auto; }
+  nav { max-width: 600px; left: 50%; right: auto; transform: translateX(-50%); }
   .pg3-pts { font-size: 30px; }
   .cbet-grid { gap: 7px; }
   .cbet-inputs input { width: 36px; height: 36px; font-size: 16px; }
@@ -400,7 +401,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v2.2';
+const VERSION = 'v2.3';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий'];
 
@@ -1014,9 +1015,9 @@ function renderMatchCard(m) {
     predHtml += '</div>';
   }
 
-  // Inline result entry — available for any match (admin can enter results anytime)
+  // Inline result entry — only for matches that have already started
   let resultEntryHtml = '';
-  if (!m.result) {
+  if (locked && !m.result) {
     resultEntryHtml = `<div style="display:flex;align-items:center;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
       <span style="font-size:12px;color:var(--text-dim);flex-shrink:0">Счёт:</span>
       <input type="number" id="rh-${m.id}" min="0" max="20" placeholder="0" onfocus="this.select()"
