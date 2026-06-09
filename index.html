@@ -100,6 +100,10 @@ nav button.act { color: var(--accent); }
   font-size: 11px; background: var(--surface2); color: var(--accent);
   border-radius: 8px; padding: 2px 8px; font-weight: 600;
 }
+.playoff-badge {
+  background: linear-gradient(90deg,#2a1a00,#3a2500);
+  color: var(--gold); border: 1px solid var(--gold);
+}
 .match-date-str { font-size: 11px; color: var(--text-dim); }
 .match-teams-row {
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
@@ -398,7 +402,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v1.7';
+const VERSION = 'v1.8';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий'];
 
@@ -451,6 +455,48 @@ const GROUP_DATETIMES = {
   L:['2026-06-18T00:00','2026-06-18T03:00','2026-06-25T18:00','2026-06-25T21:00','2026-06-29T18:00','2026-06-29T18:00'],
 };
 
+// ===================== PLAYOFF BRACKET =====================
+
+const PLAYOFF_ROUNDS = {
+  R32: '1/32 финала', R16: '1/16 финала',
+  QF:  '¼ финала',   SF:  'Полуфинал',
+  '3RD': 'Матч за 3-е место', F: 'Финал',
+};
+
+// R32 slot descriptions (used for auto-populate from group standings)
+// Keys = match id, values = {home, away} as group-slot strings
+const R32_SLOTS = {
+  73:{home:'1A',away:'2B'}, 74:{home:'1C',away:'2D'},
+  75:{home:'1E',away:'2F'}, 76:{home:'1G',away:'2H'},
+  77:{home:'1I',away:'2J'}, 78:{home:'1K',away:'2L'},
+  79:{home:'1B',away:'2A'}, 80:{home:'1D',away:'2C'},
+  81:{home:'1F',away:'2E'}, 82:{home:'1H',away:'2G'},
+  83:{home:'1J',away:'2I'}, 84:{home:'1L',away:'2K'},
+  // 4 matches with 8 best 3rd-place teams (admin fills manually or via populate)
+  85:{home:'3-й1',away:'3-й2'}, 86:{home:'3-й3',away:'3-й4'},
+  87:{home:'3-й5',away:'3-й6'}, 88:{home:'3-й7',away:'3-й8'},
+};
+
+// Winner of matchId → fills slot in next match; SF losers go to 3rd place
+const BRACKET_NEXT = {
+  73:{next:89,slot:'home'}, 74:{next:89,slot:'away'},
+  75:{next:90,slot:'home'}, 76:{next:90,slot:'away'},
+  77:{next:91,slot:'home'}, 78:{next:91,slot:'away'},
+  79:{next:92,slot:'home'}, 80:{next:92,slot:'away'},
+  81:{next:93,slot:'home'}, 82:{next:93,slot:'away'},
+  83:{next:94,slot:'home'}, 84:{next:94,slot:'away'},
+  85:{next:95,slot:'home'}, 86:{next:95,slot:'away'},
+  87:{next:96,slot:'home'}, 88:{next:96,slot:'away'},
+  89:{next:97,slot:'home'}, 90:{next:97,slot:'away'},
+  91:{next:98,slot:'home'}, 92:{next:98,slot:'away'},
+  93:{next:99,slot:'home'}, 94:{next:99,slot:'away'},
+  95:{next:100,slot:'home'},96:{next:100,slot:'away'},
+  97:{next:101,slot:'home'},98:{next:101,slot:'away'},
+  99:{next:102,slot:'home'},100:{next:102,slot:'away'},
+  101:{next:104,slot:'home',loserNext:103,loserSlot:'home'},
+  102:{next:104,slot:'away',loserNext:103,loserSlot:'away'},
+};
+
 // ===================== DATA LAYER =====================
 
 function generateDefaultMatches() {
@@ -466,6 +512,51 @@ function generateDefaultMatches() {
     matches.push({id:id++,group:grp,home:T1,away:T4,date:dt[4],result:null,md:3});
     matches.push({id:id++,group:grp,home:T2,away:T3,date:dt[5],result:null,md:3});
   }
+  // id should be 73 here (12 groups × 6 = 72 group matches)
+
+  // ── Round of 32 (IDs 73–88) ──
+  const r32 = [
+    {home:'1A',away:'2B',date:'2026-07-02T18:00'},
+    {home:'1C',away:'2D',date:'2026-07-02T21:00'},
+    {home:'1E',away:'2F',date:'2026-07-03T18:00'},
+    {home:'1G',away:'2H',date:'2026-07-03T21:00'},
+    {home:'1I',away:'2J',date:'2026-07-04T18:00'},
+    {home:'1K',away:'2L',date:'2026-07-04T21:00'},
+    {home:'1B',away:'2A',date:'2026-07-05T18:00'},
+    {home:'1D',away:'2C',date:'2026-07-05T21:00'},
+    {home:'1F',away:'2E',date:'2026-07-06T18:00'},
+    {home:'1H',away:'2G',date:'2026-07-06T21:00'},
+    {home:'1J',away:'2I',date:'2026-07-07T18:00'},
+    {home:'1L',away:'2K',date:'2026-07-07T21:00'},
+    {home:'3-й №1',away:'3-й №2',date:'2026-07-08T18:00'},
+    {home:'3-й №3',away:'3-й №4',date:'2026-07-08T21:00'},
+    {home:'3-й №5',away:'3-й №6',date:'2026-07-09T18:00'},
+    {home:'3-й №7',away:'3-й №8',date:'2026-07-09T21:00'},
+  ];
+  r32.forEach(m => matches.push({id:id++,round:'R32',home:m.home,away:m.away,date:m.date,result:null}));
+
+  // ── Round of 16 (IDs 89–96) ──
+  ['2026-07-12T18:00','2026-07-12T21:00',
+   '2026-07-13T18:00','2026-07-13T21:00',
+   '2026-07-14T18:00','2026-07-14T21:00',
+   '2026-07-15T18:00','2026-07-15T21:00',
+  ].forEach(date => matches.push({id:id++,round:'R16',home:'ТБД',away:'ТБД',date,result:null}));
+
+  // ── Quarter-finals (IDs 97–100) ──
+  ['2026-07-17T18:00','2026-07-17T21:00',
+   '2026-07-18T18:00','2026-07-18T21:00',
+  ].forEach(date => matches.push({id:id++,round:'QF',home:'ТБД',away:'ТБД',date,result:null}));
+
+  // ── Semi-finals (IDs 101–102) ──
+  ['2026-07-21T21:00','2026-07-22T21:00']
+    .forEach(date => matches.push({id:id++,round:'SF',home:'ТБД',away:'ТБД',date,result:null}));
+
+  // ── 3rd place (ID 103) ──
+  matches.push({id:id++,round:'3RD',home:'ТБД',away:'ТБД',date:'2026-07-25T21:00',result:null});
+
+  // ── Final (ID 104) ──
+  matches.push({id:id++,round:'F',home:'ТБД',away:'ТБД',date:'2026-07-26T21:00',result:null});
+
   return matches;
 }
 
@@ -502,6 +593,13 @@ function normalizeData(val) {
   if (!val.predictions)    val.predictions    = {};
   if (!val.tournamentPicks) val.tournamentPicks = {};
   if (!val.lockedBets)     val.lockedBets     = {};
+
+  // Migration: add playoff match stubs if missing (data saved before playoff feature)
+  if (val.matches && !val.matches.some(m => m.round)) {
+    const playoffStubs = generateDefaultMatches().filter(m => m.round);
+    val.matches = [...val.matches, ...playoffStubs];
+  }
+
   return val;
 }
 
@@ -842,9 +940,13 @@ function clearBetFor(matchId, player) {
 // ===================== RENDER MATCHES =====================
 
 function renderMatches() {
-  const filters = ['upcoming','past','today','all','A','B','C','D','E','F','G','H','I','J','K','L'];
-  const filterLabels = {upcoming:'Предстоящие',past:'Прошедшие',today:'Сегодня',all:'Все'};
-  filters.slice(3).forEach(g => filterLabels[g] = 'Группа '+g);
+  const filters = ['upcoming','past','today','all','R32','R16','QF','SF','Final','A','B','C','D','E','F','G','H','I','J','K','L'];
+  const filterLabels = {
+    upcoming:'Предстоящие', past:'Прошедшие', today:'Сегодня', all:'Все',
+    R32:'1/32', R16:'1/16', QF:'1/4', SF:'1/2', Final:'Финал',
+  };
+  // Group labels start from index 9
+  filters.slice(9).forEach(g => filterLabels[g] = 'Гр. ' + g);
 
   let barHtml = '<div class="filter-bar">';
   filters.forEach(f => {
@@ -855,12 +957,17 @@ function renderMatches() {
   const now = new Date();
   let filtered = data.matches.filter(m => {
     if (matchFilter === 'upcoming') return new Date(m.date) > now;
-    if (matchFilter === 'past') return new Date(m.date) <= now;
+    if (matchFilter === 'past')     return new Date(m.date) <= now;
     if (matchFilter === 'today') {
       const d = new Date(m.date);
       return d.getDate() === now.getDate() && d.getMonth() === now.getMonth();
     }
-    if (matchFilter === 'all') return true;
+    if (matchFilter === 'all')   return true;
+    if (matchFilter === 'R32')   return m.round === 'R32';
+    if (matchFilter === 'R16')   return m.round === 'R16';
+    if (matchFilter === 'QF')    return m.round === 'QF';
+    if (matchFilter === 'SF')    return m.round === 'SF';
+    if (matchFilter === 'Final') return m.round === '3RD' || m.round === 'F';
     return m.group === matchFilter;
   });
 
@@ -880,6 +987,8 @@ function renderMatches() {
 function renderMatchCard(m) {
   const locked = isLocked(m);
   const dateStr = fmtDate(m.date);
+  const isPlayoff = !!m.round;
+  const badgeLabel = isPlayoff ? (PLAYOFF_ROUNDS[m.round] || m.round) : `Группа ${m.group}`;
 
   let scoreHtml;
   if (m.result) {
@@ -940,7 +1049,7 @@ function renderMatchCard(m) {
 
   return `<div class="match-card">
     <div class="match-meta">
-      <span class="match-group-badge">Группа ${m.group}</span>
+      <span class="match-group-badge${isPlayoff?' playoff-badge':''}">${badgeLabel}</span>
       <span class="match-date-str">${dateStr}${locked&&!m.result?' <span class="locked-badge">СТАРТ</span>':''}</span>
     </div>
     <div class="match-teams-row">
@@ -1120,6 +1229,58 @@ function renderAdmin() {
     });
   }
 
+  // ── Playoff section ──
+  html += '<div class="sec-label">Плей-офф</div>';
+
+  // Group standings (compact 2-column grid)
+  html += '<div class="admin-section">';
+  html += '<div class="admin-section-title">📊 Таблицы групп (для формирования 1/32)</div>';
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">';
+  Object.keys(GROUPS_DEF).forEach(g => {
+    const st = calcGroupStandings(g);
+    html += `<div style="background:var(--surface2);border-radius:8px;padding:8px;font-size:11px">
+      <div style="font-weight:700;color:var(--accent);margin-bottom:4px">Группа ${g}</div>`;
+    st.forEach((t, i) => {
+      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '4️⃣';
+      const gd = t.gf - t.ga;
+      html += `<div style="display:flex;gap:4px;align-items:center;padding:2px 0;${i<2?'color:var(--text)':'color:var(--text-dim)'}">
+        <span>${medal}</span>
+        <span style="flex:1">${flag(t.team)} ${t.team}</span>
+        <span style="font-weight:700">${t.pts}оч</span>
+        <span style="color:var(--text-dim)">${gd >= 0 ? '+' : ''}${gd}</span>
+      </div>`;
+    });
+    html += '</div>';
+  });
+  html += '</div>';
+  html += `<button class="btn btn-sm" style="margin-top:12px;width:100%" onclick="populateR32()">
+    ⚙️ Заполнить 1/32 из таблиц групп
+  </button>`;
+  html += '</div>';
+
+  // Playoff match team editor
+  html += '<div class="admin-section">';
+  html += '<div class="admin-section-title">✏️ Редактировать команды в матчах плей-офф</div>';
+  html += '<div style="font-size:11px;color:var(--text-dim);margin-bottom:8px">Если авто-заполнение не сработало или нужна правка после доп. времени/пенальти</div>';
+  const playoffMatches = data.matches
+    .filter(m => m.round)
+    .sort((a,b) => new Date(a.date) - new Date(b.date));
+  playoffMatches.forEach(m => {
+    const roundName = PLAYOFF_ROUNDS[m.round] || m.round;
+    html += `<div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)">
+      <div style="font-size:11px;color:var(--gold);font-weight:600;margin-bottom:6px">${roundName} · ${fmtDate(m.date)}</div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <input type="text" id="ph-${m.id}" value="${m.home}" placeholder="Команда 1"
+          style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:6px 8px;font-size:12px">
+        <span style="color:var(--text-dim);font-size:12px">—</span>
+        <input type="text" id="pa-${m.id}" value="${m.away}" placeholder="Команда 2"
+          style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:6px 8px;font-size:12px">
+        <button class="btn btn-sm" onclick="savePlayoffTeams(${m.id})" style="flex-shrink:0">💾</button>
+      </div>
+    </div>`;
+  });
+  html += '</div>';
+
   // Reset
   html += `<div class="sec-label">Опасная зона</div>
     <div class="admin-section">
@@ -1144,6 +1305,72 @@ function setWinner() {
   renderLeaderboard();
 }
 
+// Returns [{team, pts, w, d, l, gf, ga}, ...] sorted 1st→4th
+function calcGroupStandings(groupId) {
+  const teams = GROUPS_DEF[groupId];
+  if (!teams) return [];
+  const stats = {};
+  teams.forEach(t => { stats[t] = {team:t,pts:0,w:0,d:0,l:0,gf:0,ga:0}; });
+  data.matches
+    .filter(m => m.group === groupId && m.result)
+    .forEach(m => {
+      const {home:h, away:a} = m.result;
+      const hs = stats[m.home], as_ = stats[m.away];
+      if (!hs || !as_) return;
+      hs.gf += h; hs.ga += a; as_.gf += a; as_.ga += h;
+      if (h > a)      { hs.pts += 3; hs.w++;  as_.l++; }
+      else if (h < a) { as_.pts += 3; as_.w++; hs.l++;  }
+      else            { hs.pts += 1; hs.d++; as_.pts += 1; as_.d++; }
+    });
+  return Object.values(stats).sort((a,b) => {
+    if (b.pts !== a.pts) return b.pts - a.pts;
+    const gdDiff = (b.gf - b.ga) - (a.gf - a.ga);
+    if (gdDiff !== 0) return gdDiff;
+    return b.gf - a.gf;
+  });
+}
+
+// Fill R32 team names from group standings (requires PIN)
+function populateR32() {
+  const pin = prompt('PIN для заполнения плей-офф:');
+  if (pin === null) return;
+  if (pin !== '3220') { alert('Неверный PIN'); return; }
+
+  // Build slot→team map from group standings
+  const slotToTeam = {};
+  Object.keys(GROUPS_DEF).forEach(g => {
+    const st = calcGroupStandings(g);
+    if (st[0]) slotToTeam[`1${g}`] = st[0].team;
+    if (st[1]) slotToTeam[`2${g}`] = st[1].team;
+  });
+
+  // Best 8 third-place teams sorted by pts/gd/gf
+  const thirds = Object.keys(GROUPS_DEF)
+    .map(g => calcGroupStandings(g)[2])
+    .filter(Boolean)
+    .sort((a,b) => {
+      if (b.pts !== a.pts) return b.pts - a.pts;
+      const gdDiff = (b.gf - b.ga) - (a.gf - a.ga);
+      if (gdDiff !== 0) return gdDiff;
+      return b.gf - a.gf;
+    })
+    .slice(0, 8);
+  thirds.forEach((t, i) => { slotToTeam[`3-й №${i+1}`] = t.team; });
+
+  // Patch R32 match home/away with actual team names
+  Object.entries(R32_SLOTS).forEach(([id, slots]) => {
+    const m = data.matches.find(x => x.id === parseInt(id));
+    if (!m) return;
+    if (slotToTeam[slots.home]) m.home = slotToTeam[slots.home];
+    if (slotToTeam[slots.away]) m.away = slotToTeam[slots.away];
+  });
+
+  saveData(data);
+  renderAdmin();
+  if (activeTab === 'matches') renderMatches();
+  alert('Сетка 1/32 заполнена из группового этапа!');
+}
+
 function saveResult(matchId) {
   const m = data.matches.find(x => x.id === matchId);
   if (!m) return;
@@ -1151,10 +1378,41 @@ function saveResult(matchId) {
   const a = parseInt(document.getElementById(`ra-${matchId}`).value);
   if (isNaN(h) || isNaN(a) || h < 0 || a < 0) { alert('Введи корректный счёт'); return; }
   m.result = {home: h, away: a};
+
+  // Auto-advance winner (and loser for SF→3rd) in knockout bracket
+  if (m.round && BRACKET_NEXT[matchId]) {
+    const bn = BRACKET_NEXT[matchId];
+    if (h !== a) {
+      const winner = h > a ? m.home : m.away;
+      const loser  = h > a ? m.away : m.home;
+      const nextM = data.matches.find(x => x.id === bn.next);
+      if (nextM) nextM[bn.slot] = winner;
+      if (bn.loserNext) {
+        const loserM = data.matches.find(x => x.id === bn.loserNext);
+        if (loserM) loserM[bn.loserSlot] = loser;
+      }
+    }
+    // Draw: skip auto-advance — extra time/penalties decided externally
+    // Admin will manually edit the next-round match teams if needed
+  }
+
   saveData(data);
   renderLeaderboard();
   renderMatches();
   if (activeTab === 'admin') renderAdmin();
+}
+
+// Save manually edited playoff team names (from Admin)
+function savePlayoffTeams(matchId) {
+  const m = data.matches.find(x => x.id === matchId);
+  if (!m) return;
+  const h = document.getElementById(`ph-${matchId}`);
+  const a = document.getElementById(`pa-${matchId}`);
+  if (!h || !a) return;
+  m.home = h.value.trim() || m.home;
+  m.away = a.value.trim() || m.away;
+  saveData(data);
+  renderMatches();
 }
 
 function clearResult(matchId) {
