@@ -412,7 +412,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.16';
+const VERSION = 'v3.17';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий'];
 
@@ -866,6 +866,10 @@ function renderLeaderboard() {
     ↔️ Правильная разница голов — <strong style="color:var(--gold)">2 очка</strong><br>
     ✅ Угадал победителя — <strong style="color:var(--orange)">1 очко</strong><br>
     🏆 Чемпион турнира — <strong style="color:var(--gold)">+10 очков</strong><br>
+    <div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">
+      ⚽ <strong style="color:var(--text)">Плей-офф:</strong> угадал кто проходит при ничье — <strong style="color:#00d4aa">+2 очка</strong><br>
+      <span style="font-size:11px;opacity:.7">Максимум 5 очков за матч (3 + 2). Бонус только если матч закончился ничьей в 90 мин.</span>
+    </div>
     ⚠️ Лидер по очкам делает ставку <strong>первым!</strong>
   </div>`;
 
