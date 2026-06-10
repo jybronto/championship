@@ -412,7 +412,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.11';
+const VERSION = 'v3.12';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий'];
 
@@ -429,6 +429,28 @@ const TEAMS = {
   'Аргентина':'🇦🇷','Алжир':'🇩🇿','Австрия':'🇦🇹','Иордания':'🇯🇴',
   'Португалия':'🇵🇹','ДР Конго':'🇨🇩','Узбекистан':'🇺🇿','Колумбия':'🇨🇴',
   'Англия':'🏴󠁧󠁢󠁥󠁮󠁧󠁿','Хорватия':'🇭🇷','Гана':'🇬🇭','Панама':'🇵🇦',
+};
+
+// Mapping football-data.org English names → local Russian names
+const API_TEAM_MAP = {
+  'Mexico':'Мексика','South Africa':'ЮАР','Korea Republic':'Южная Корея',
+  'Czechia':'Чехия','Czech Republic':'Чехия',
+  'Canada':'Канада','Bosnia and Herzegovina':'Босния и Герц.',
+  'Qatar':'Катар','Switzerland':'Швейцария',
+  'Brazil':'Бразилия','Morocco':'Марокко','Haiti':'Гаити','Scotland':'Шотландия',
+  'United States':'США','USA':'США','Paraguay':'Парагвай',
+  'Australia':'Австралия','Turkey':'Турция','Türkiye':'Турция',
+  'Germany':'Германия','Curaçao':'Кюрасао',"Côte d'Ivoire":"Кот-д'Ивуар",
+  'Ecuador':'Эквадор','Netherlands':'Нидерланды','Japan':'Япония',
+  'Sweden':'Швеция','Tunisia':'Тунис','Belgium':'Бельгия','Egypt':'Египет',
+  'Iran':'Иран','New Zealand':'Новая Зеландия','Spain':'Испания',
+  'Cabo Verde':'Кабо-Верде','Cape Verde':'Кабо-Верде',
+  'Saudi Arabia':'Саудовская Аравия','Uruguay':'Уругвай',
+  'France':'Франция','Senegal':'Сенегал','Iraq':'Ирак','Norway':'Норвегия',
+  'Argentina':'Аргентина','Algeria':'Алжир','Austria':'Австрия','Jordan':'Иордания',
+  'Portugal':'Португалия','DR Congo':'ДР Конго','Congo DR':'ДР Конго',
+  'Uzbekistan':'Узбекистан','Colombia':'Колумбия',
+  'England':'Англия','Croatia':'Хорватия','Ghana':'Гана','Panama':'Панама',
 };
 
 // Group A–L, 4 teams each
@@ -1010,6 +1032,109 @@ function clearBetFor(matchId, player) {
   if (activeTab === 'bets') renderBets();
 }
 
+// ===================== FETCH RESULTS FROM API =====================
+
+async function fetchAndUpdateResults() {
+  const pin = prompt('PIN для обновления результатов:');
+  if (pin === null) return;
+  if (pin !== '3220') { alert('Неверный PIN'); return; }
+
+  let apiKey = localStorage.getItem('wc2026_apikey') || '';
+  if (!apiKey) {
+    apiKey = (prompt('Введи API ключ с football-data.org\n(регистрация бесплатна на football-data.org):') || '').trim();
+    if (!apiKey) return;
+    localStorage.setItem('wc2026_apikey', apiKey);
+  }
+
+  const btn = document.getElementById('fetch-results-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Загрузка...'; }
+
+  try {
+    const res = await fetch('https://api.football-data.org/v4/competitions/WC/matches?status=FINISHED', {
+      headers: { 'X-Auth-Token': apiKey }
+    });
+    if (res.status === 403) {
+      localStorage.removeItem('wc2026_apikey');
+      throw new Error('Неверный API ключ — ключ сброшен, введи заново.');
+    }
+    if (res.status === 429) throw new Error('Слишком много запросов. Попробуй через минуту.');
+    if (!res.ok) throw new Error(`Ошибка API: ${res.status}`);
+
+    const json = await res.json();
+    const apiMatches = json.matches || [];
+
+    let updated = 0;
+    apiMatches.forEach(apiM => {
+      const apiHome = API_TEAM_MAP[apiM.homeTeam.name] || API_TEAM_MAP[apiM.homeTeam.shortName];
+      const apiAway = API_TEAM_MAP[apiM.awayTeam.name] || API_TEAM_MAP[apiM.awayTeam.shortName];
+      if (!apiHome || !apiAway) return;
+
+      const h90 = apiM.score.fullTime.home;
+      const a90 = apiM.score.fullTime.away;
+      if (h90 === null || h90 === undefined || a90 === null || a90 === undefined) return;
+
+      // Find local match by both teams in any order
+      const local = data.matches.find(m =>
+        (m.home === apiHome && m.away === apiAway) ||
+        (m.home === apiAway  && m.away === apiHome)
+      );
+      if (!local) return;
+
+      // Apply score in local home/away order
+      const swapped = local.home === apiAway;
+      const scoreHome = swapped ? a90 : h90;
+      const scoreAway = swapped ? h90 : a90;
+
+      // Determine winner for playoff matches
+      let winner = null;
+      if (local.round) {
+        if (scoreHome !== scoreAway) {
+          winner = scoreHome > scoreAway ? local.home : local.away;
+        } else {
+          // Draw → look at penalties/ET winner from API
+          const apiWinner = apiM.score.winner; // 'HOME_TEAM' | 'AWAY_TEAM' | null
+          if (apiWinner === 'HOME_TEAM') winner = swapped ? local.away : local.home;
+          else if (apiWinner === 'AWAY_TEAM') winner = swapped ? local.home : local.away;
+        }
+      }
+
+      // Skip if nothing changed
+      const ex = local.result;
+      if (ex && ex.home === scoreHome && ex.away === scoreAway && ex.winner === (winner || undefined)) return;
+
+      local.result = { home: scoreHome, away: scoreAway };
+      if (winner) local.result.winner = winner;
+      updated++;
+
+      // Auto-advance bracket for playoff
+      if (local.round && BRACKET_NEXT[local.id] && winner) {
+        const bn = BRACKET_NEXT[local.id];
+        const loser = winner === local.home ? local.away : local.home;
+        const nextM = data.matches.find(x => x.id === bn.next);
+        if (nextM && nextM[bn.slot] === 'ТБД') nextM[bn.slot] = winner;
+        if (bn.loserNext) {
+          const loserM = data.matches.find(x => x.id === bn.loserNext);
+          if (loserM && loserM[bn.loserSlot] === 'ТБД') loserM[bn.loserSlot] = loser;
+        }
+      }
+    });
+
+    if (updated > 0) {
+      saveData(data);
+      renderLeaderboard();
+      renderMatches();
+      if (activeTab === 'admin') renderAdmin();
+      alert(`✅ Обновлено ${updated} результатов!`);
+    } else {
+      alert('Новых завершённых матчей не найдено.');
+    }
+  } catch (e) {
+    alert(`Ошибка: ${e.message}`);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🔄 Обновить результаты'; }
+  }
+}
+
 // ===================== RENDER MATCHES =====================
 
 function renderMatches() {
@@ -1048,7 +1173,10 @@ function renderMatches() {
     ? new Date(b.date) - new Date(a.date)   // past: newest first
     : new Date(a.date) - new Date(b.date)); // others: oldest first
 
-  let html = barHtml;
+  const fetchBtn = `<div style="display:flex;justify-content:flex-end;margin-bottom:8px">
+    <button id="fetch-results-btn" class="btn btn-sm btn-sec" onclick="fetchAndUpdateResults()">🔄 Обновить результаты</button>
+  </div>`;
+  let html = fetchBtn + barHtml;
   if (!filtered.length) {
     html += '<div class="empty-state">Матчей не найдено</div>';
   } else {
