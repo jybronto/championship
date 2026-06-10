@@ -412,7 +412,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.18';
+const VERSION = 'v3.19';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий'];
 
@@ -1175,7 +1175,11 @@ function renderMatches() {
   } else {
     filtered.forEach(m => { html += renderMatchCard(m); });
   }
+
+  const prevScroll = document.querySelector('.filter-bar')?.scrollLeft || 0;
   document.getElementById('matches-content').innerHTML = html;
+  const bar = document.querySelector('.filter-bar');
+  if (bar) bar.scrollLeft = prevScroll;
 }
 
 function renderMatchCard(m) {
