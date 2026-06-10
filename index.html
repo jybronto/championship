@@ -142,7 +142,13 @@ nav button.act { color: var(--accent); }
 .pred-chip.pts1 .pts-badge { color: var(--orange); }
 .pred-chip.pts0 { background: #2a0d0d; border-color: var(--red); }
 .pred-chip.pts0 .pts-badge { color: var(--red); }
+.pred-chip.pts4 { background: #0a2020; border-color: #00d4aa; }
+.pred-chip.pts4 .pts-badge { color: #00d4aa; }
+.pred-chip.pts5 { background: #1e1a00; border-color: #f1c40f; box-shadow: 0 0 5px #f1c40f33; }
+.pred-chip.pts5 .pts-badge { color: #f1c40f; }
 .pred-chip.no-bet { opacity: .45; }
+.cbet-advance-sel { width:100%; margin-top:4px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; color:var(--text); padding:4px 6px; font-size:12px; }
+.cbet-advance-disp { font-size:11px; color:var(--accent); margin-top:2px; }
 .locked-badge {
   font-size: 10px; color: var(--red); border: 1px solid var(--red);
   border-radius: 6px; padding: 1px 6px; margin-left: 4px;
@@ -659,14 +665,16 @@ function hideLoader() {
 
 // ===================== BUSINESS LOGIC =====================
 
-function calcPoints(pred, result) {
+function calcPoints(pred, result, isPlayoff = false) {
   if (!pred || !result) return null;
   const {home:pH, away:pA} = pred;
   const {home:rH, away:rA} = result;
-  if (pH === rH && pA === rA) return 3;
-  if ((pH - pA) === (rH - rA)) return 2;
-  if (Math.sign(pH - pA) === Math.sign(rH - rA)) return 1;
-  return 0;
+  let pts = 0;
+  if (pH === rH && pA === rA) pts = 3;
+  else if ((pH - pA) === (rH - rA)) pts = 2;
+  else if (Math.sign(pH - pA) === Math.sign(rH - rA)) pts = 1;
+  if (isPlayoff && result.winner && pred.advancePick && pred.advancePick === result.winner) pts += 2;
+  return pts;
 }
 
 function getStandings(data) {
@@ -677,7 +685,7 @@ function getStandings(data) {
     if (!m.result) return;
     PLAYERS.forEach(p => {
       const pred = data.predictions[`${m.id}_${p}`];
-      const pts = calcPoints(pred, m.result);
+      const pts = calcPoints(pred, m.result, !!m.round);
       if (pts !== null) st[p].matchPts += pts;
     });
   });
@@ -841,16 +849,29 @@ function renderLeaderboard() {
 
 function renderBetInputs(match, adminMode) {
   const betLocked = !adminMode && data.lockedBets && data.lockedBets[match.id];
+  const isPlayoff = !!match.round;
+  const teamsKnown = isPlayoff && !!TEAMS[match.home] && !!TEAMS[match.away];
   let html = '<div class="cbet-grid">';
   PLAYERS.forEach(p => {
     const pred = data.predictions[`${match.id}_${p}`];
     if (pred) {
+      const apDisplay = isPlayoff && pred.advancePick
+        ? `<div class="cbet-advance-disp">→ ${flag(pred.advancePick)} ${pred.advancePick}</div>`
+        : '';
       html += `<div class="cbet-cell">
         <div class="cbet-name">${p}</div>
         <div class="cbet-done">${betLocked ? '🔒' : '✅'} ${pred.home} : ${pred.away}</div>
+        ${apDisplay}
         ${!betLocked ? `<button class="btn-clear-sm" onclick="clearBetFor(${match.id},'${p}')">✕</button>` : ''}
       </div>`;
     } else if (!betLocked) {
+      const apSelect = teamsKnown
+        ? `<select id="ap-${match.id}-${p}" class="cbet-advance-sel">
+            <option value="">— кто проходит —</option>
+            <option value="${match.home}">${flag(match.home)} ${match.home}</option>
+            <option value="${match.away}">${flag(match.away)} ${match.away}</option>
+          </select>`
+        : '';
       html += `<div class="cbet-cell">
         <div class="cbet-name">${p}</div>
         <div class="cbet-inputs">
@@ -864,6 +885,7 @@ function renderBetInputs(match, adminMode) {
             onblur="if(this.value.trim()==='')this.value=this.dataset.prev||'0'"
             oninput="this.dataset.touched='1'">
         </div>
+        ${apSelect}
         <button class="btn-save-sm" onclick="saveBetFor(${match.id},'${p}')">✓</button>
       </div>`;
     } else {
@@ -920,7 +942,9 @@ function saveBetFor(matchId, player) {
   if (!hEl || !aEl) return;
   const h = Math.max(0, Math.min(20, parseInt(hEl.value) || 0));
   const a = Math.max(0, Math.min(20, parseInt(aEl.value) || 0));
-  data.predictions[`${matchId}_${player}`] = { home: h, away: a, ts: Date.now() };
+  const apEl = document.getElementById(`ap-${matchId}-${player}`);
+  const advancePick = apEl ? (apEl.value || null) : null;
+  data.predictions[`${matchId}_${player}`] = { home: h, away: a, advancePick, ts: Date.now() };
   saveData(data);
   renderLeaderboard();
   if (activeTab === 'matches') renderMatches();
@@ -942,6 +966,19 @@ function submitAllBets(matchId) {
     return;
   }
 
+  // For playoff matches warn if advance picks are missing
+  const isPlayoffMatch = !!m.round;
+  const teamsKnown = isPlayoffMatch && !!TEAMS[m.home] && !!TEAMS[m.away];
+  if (teamsKnown) {
+    const missingAp = PLAYERS.filter(p => {
+      const existing = data.predictions[`${matchId}_${p}`];
+      if (existing && existing.advancePick) return false;
+      const apEl = document.getElementById(`ap-${matchId}-${p}`);
+      return !apEl || !apEl.value;
+    });
+    if (missingAp.length && !confirm(`${missingAp.join(', ')} не выбрали кто проходит дальше (+2 очка). Продолжить без этого?`)) return;
+  }
+
   // Save newly touched inputs
   PLAYERS.forEach(p => {
     const hEl = document.getElementById(`bh-${matchId}-${p}`);
@@ -949,7 +986,9 @@ function submitAllBets(matchId) {
     if (!hEl || !aEl) return;
     const h = Math.max(0, Math.min(20, parseInt(hEl.value) || 0));
     const a = Math.max(0, Math.min(20, parseInt(aEl.value) || 0));
-    data.predictions[`${matchId}_${p}`] = { home: h, away: a, ts: Date.now() };
+    const apEl = document.getElementById(`ap-${matchId}-${p}`);
+    const advancePick = apEl ? (apEl.value || null) : null;
+    data.predictions[`${matchId}_${p}`] = { home: h, away: a, advancePick, ts: Date.now() };
   });
   data.lockedBets[matchId] = true;
   saveData(data);
@@ -1064,12 +1103,13 @@ function renderMatchCard(m) {
         return;
       }
       const score = `${pred.home} : ${pred.away}`;
+      const apInfo = isPlayoff && pred.advancePick ? ` →${flag(pred.advancePick)}` : '';
       if (m.result) {
-        const pts = calcPoints(pred, m.result);
-        const cls = pts===3?'pts3':pts===2?'pts2':pts===1?'pts1':'pts0';
-        predHtml += `<span class="pred-chip ${cls}" title="${p}: ${score}">${p} <span>${score}</span> <span class="pts-badge">+${pts}</span></span>`;
+        const pts = calcPoints(pred, m.result, isPlayoff);
+        const cls = pts>=5?'pts5':pts===4?'pts4':pts===3?'pts3':pts===2?'pts2':pts===1?'pts1':'pts0';
+        predHtml += `<span class="pred-chip ${cls}" title="${p}: ${score}${apInfo}">${p} <span>${score}${apInfo}</span> <span class="pts-badge">+${pts}</span></span>`;
       } else {
-        predHtml += `<span class="pred-chip" title="${p}: ${score}">${p} <span>${score}</span></span>`;
+        predHtml += `<span class="pred-chip" title="${p}: ${score}${apInfo}">${p} <span>${score}${apInfo}</span></span>`;
       }
     });
     predHtml += '</div>';
@@ -1223,8 +1263,21 @@ function renderAdmin() {
   if (lockedNoResult.length) {
     html += '<div class="sec-label">Ввод результатов</div>';
     lockedNoResult.forEach(m => {
+      const isPlayoff = !!m.round;
+      const matchTitle = isPlayoff
+        ? `${PLAYOFF_ROUNDS[m.round] || m.round} · ${fmtDate(m.date)}`
+        : `Группа ${m.group} · ${fmtDate(m.date)}`;
+      const teamsKnown = isPlayoff && !!TEAMS[m.home] && !!TEAMS[m.away];
+      const winnerSelect = teamsKnown ? `<div style="margin-top:8px">
+        <div style="font-size:11px;color:var(--text-dim);margin-bottom:4px">Кто прошёл дальше (при ничье / пенальти):</div>
+        <select id="rw-${m.id}" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:6px 8px;font-size:13px">
+          <option value="">— по счёту (нет ничьей) —</option>
+          <option value="${m.home}">${flag(m.home)} ${m.home}</option>
+          <option value="${m.away}">${flag(m.away)} ${m.away}</option>
+        </select>
+      </div>` : '';
       html += `<div class="admin-section">
-        <div class="admin-section-title">Группа ${m.group} · ${fmtDate(m.date)}</div>
+        <div class="admin-section-title">${matchTitle}</div>
         <div class="result-row">
           <div class="team-name">${flag(m.home)} ${m.home}</div>
           <input type="text" inputmode="numeric" pattern="[0-9]*" id="rh-${m.id}" value="0"
@@ -1236,6 +1289,7 @@ function renderAdmin() {
             onblur="if(this.value.trim()==='')this.value=this.dataset.prev||'0'">
           <div class="team-name" style="text-align:right">${flag(m.away)} ${m.away}</div>
         </div>
+        ${winnerSelect}
         <button class="btn btn-sm" onclick="saveResult(${m.id})">Сохранить результат</button>
       </div>`;
     });
@@ -1250,8 +1304,16 @@ function renderAdmin() {
   if (withResult.length) {
     html += '<div class="sec-label">Изменить результаты</div>';
     withResult.forEach(m => {
+      const isPlayoff = !!m.round;
+      const teamsKnown = isPlayoff && !!TEAMS[m.home] && !!TEAMS[m.away];
+      const winnerDisplay = isPlayoff && m.result.winner ? ` → ${flag(m.result.winner)} ${m.result.winner}` : '';
+      const winnerSelect = teamsKnown ? `<select id="rw-${m.id}" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:4px 6px;font-size:12px;flex-shrink:0">
+        <option value="">— по счёту —</option>
+        <option value="${m.home}" ${m.result.winner===m.home?'selected':''}>${flag(m.home)} ${m.home}</option>
+        <option value="${m.away}" ${m.result.winner===m.away?'selected':''}>${flag(m.away)} ${m.away}</option>
+      </select>` : '';
       html += `<div class="admin-section">
-        <div class="admin-section-title" style="font-size:12px">${flag(m.home)} ${m.home} ${m.result.home} : ${m.result.away} ${flag(m.away)} ${m.away}</div>
+        <div class="admin-section-title" style="font-size:12px">${flag(m.home)} ${m.home} ${m.result.home} : ${m.result.away} ${flag(m.away)} ${m.away}${winnerDisplay}</div>
         <div class="result-row">
           <input type="text" inputmode="numeric" pattern="[0-9]*" id="rh-${m.id}" value="${m.result.home}"
             onfocus="this.dataset.prev=this.value;this.value=''"
@@ -1260,6 +1322,7 @@ function renderAdmin() {
           <input type="text" inputmode="numeric" pattern="[0-9]*" id="ra-${m.id}" value="${m.result.away}"
             onfocus="this.dataset.prev=this.value;this.value=''"
             onblur="if(this.value.trim()==='')this.value=this.dataset.prev||'0'">
+          ${winnerSelect}
           <button class="btn btn-sm" style="flex-shrink:0" onclick="saveResult(${m.id})">💾</button>
           <button class="btn btn-sm btn-danger" style="flex-shrink:0" onclick="clearResult(${m.id})">✕</button>
         </div>
@@ -1442,23 +1505,30 @@ function saveResult(matchId) {
   const h = parseInt(document.getElementById(`rh-${matchId}`).value);
   const a = parseInt(document.getElementById(`ra-${matchId}`).value);
   if (isNaN(h) || isNaN(a) || h < 0 || a < 0) { alert('Введи корректный счёт'); return; }
+
+  // Determine winner for playoff matches
+  let winner = null;
+  if (m.round) {
+    if (h !== a) {
+      winner = h > a ? m.home : m.away;
+    } else {
+      const rwEl = document.getElementById(`rw-${matchId}`);
+      if (rwEl && rwEl.value) winner = rwEl.value;
+    }
+  }
   m.result = {home: h, away: a};
+  if (winner) m.result.winner = winner;
 
   // Auto-advance winner (and loser for SF→3rd) in knockout bracket
-  if (m.round && BRACKET_NEXT[matchId]) {
+  if (m.round && BRACKET_NEXT[matchId] && winner) {
     const bn = BRACKET_NEXT[matchId];
-    if (h !== a) {
-      const winner = h > a ? m.home : m.away;
-      const loser  = h > a ? m.away : m.home;
-      const nextM = data.matches.find(x => x.id === bn.next);
-      if (nextM) nextM[bn.slot] = winner;
-      if (bn.loserNext) {
-        const loserM = data.matches.find(x => x.id === bn.loserNext);
-        if (loserM) loserM[bn.loserSlot] = loser;
-      }
+    const loser = winner === m.home ? m.away : m.home;
+    const nextM = data.matches.find(x => x.id === bn.next);
+    if (nextM) nextM[bn.slot] = winner;
+    if (bn.loserNext) {
+      const loserM = data.matches.find(x => x.id === bn.loserNext);
+      if (loserM) loserM[bn.loserSlot] = loser;
     }
-    // Draw: skip auto-advance — extra time/penalties decided externally
-    // Admin will manually edit the next-round match teams if needed
   }
 
   saveData(data);
