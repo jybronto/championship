@@ -412,7 +412,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.13';
+const VERSION = 'v3.14';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий'];
 
@@ -697,7 +697,8 @@ function calcPoints(pred, result, isPlayoff = false) {
   if (pH === rH && pA === rA) pts = 3;
   else if ((pH - pA) === (rH - rA)) pts = 2;
   else if (Math.sign(pH - pA) === Math.sign(rH - rA)) pts = 1;
-  if (isPlayoff && result.winner && pred.advancePick && pred.advancePick === result.winner) pts += 2;
+  if (isPlayoff && result.winner && pred.advancePick && pred.advancePick === result.winner
+      && result.home === result.away) pts += 2;
   return pts;
 }
 
