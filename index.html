@@ -412,7 +412,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.17';
+const VERSION = 'v3.18';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий'];
 
@@ -1041,18 +1041,14 @@ function clearBetFor(matchId, player) {
 
 // ===================== FETCH RESULTS FROM API =====================
 
-async function fetchAndUpdateResults() {
-  if (!data.footballApiKey) {
-    alert('Прокси URL не настроен. Перейди в Администратор → Прокси.');
-    return;
-  }
+const PROXY_URL = 'https://winter-night-ef77.jybronto.workers.dev';
 
+async function fetchAndUpdateResults() {
   const btn = document.getElementById('fetch-results-btn');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Загрузка...'; }
 
   try {
-    const proxyBase = data.footballApiKey.replace(/\/$/, '');
-    const res = await fetch(`${proxyBase}/competitions/WC/matches?status=FINISHED`);
+    const res = await fetch(`${PROXY_URL}/competitions/WC/matches?status=FINISHED`);
     if (res.status === 403) throw new Error('Прокси вернул 403 — проверь Worker и ключ в нём.');
     if (res.status === 429) throw new Error('Слишком много запросов. Попробуй через минуту.');
     if (!res.ok) throw new Error(`Ошибка прокси: ${res.status}`);
@@ -1367,18 +1363,6 @@ function renderAdmin() {
   });
   html += '</div>';
 
-  // Tournament winner
-  html += '<div class="sec-label">Победитель турнира</div>';
-  html += '<div class="admin-section">';
-  html += '<div class="admin-section-title">🥇 Установить чемпиона (после финала)</div>';
-  const curWinner = data.tournamentWinner || '';
-  html += `<select id="winner-select" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font-size:14px;margin-bottom:10px">
-    <option value="">— ещё не определён —</option>
-    ${allTeams.map(t => `<option value="${t}" ${curWinner===t?'selected':''}>${flag(t)} ${t}</option>`).join('')}
-  </select>`;
-  html += `<button class="btn btn-sm" style="width:auto" onclick="setWinner()">Сохранить</button>`;
-  html += '</div>';
-
   // Enter results — upcoming locked matches
   const lockedNoResult = data.matches
     .filter(m => isLocked(m) && !m.result)
@@ -1456,14 +1440,6 @@ function renderAdmin() {
   }
 
   // Reset
-  html += `<div class="sec-label">Прокси для авто-обновления результатов</div>
-    <div class="admin-section">
-      <div class="admin-section-title">🔗 URL Cloudflare Worker</div>
-      <input type="text" id="football-api-key-input" value="${data.footballApiKey || ''}"
-        placeholder="https://wc2026-proxy.ИМЯ.workers.dev"
-        style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font-size:13px;margin-bottom:8px;box-sizing:border-box">
-      <button class="btn btn-sm" onclick="saveFootballApiKey()">💾 Сохранить</button>
-    </div>`;
 
   html += `<div class="sec-label">Опасная зона</div>
     <div class="admin-section">
