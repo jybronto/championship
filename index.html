@@ -412,7 +412,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.14';
+const VERSION = 'v3.15';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий'];
 
@@ -1039,7 +1039,7 @@ function clearBetFor(matchId, player) {
 
 async function fetchAndUpdateResults() {
   if (!data.footballApiKey) {
-    alert('API ключ не настроен. Перейди в Администратор → API ключ.');
+    alert('Прокси URL не настроен. Перейди в Администратор → Прокси.');
     return;
   }
 
@@ -1047,14 +1047,11 @@ async function fetchAndUpdateResults() {
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Загрузка...'; }
 
   try {
-    const res = await fetch('https://api.football-data.org/v4/competitions/WC/matches?status=FINISHED', {
-      headers: { 'X-Auth-Token': data.footballApiKey }
-    });
-    if (res.status === 403) {
-      throw new Error('Неверный API ключ. Обнови его в Администратор → API ключ.');
-    }
+    const proxyBase = data.footballApiKey.replace(/\/$/, '');
+    const res = await fetch(`${proxyBase}/competitions/WC/matches?status=FINISHED`);
+    if (res.status === 403) throw new Error('Прокси вернул 403 — проверь Worker и ключ в нём.');
     if (res.status === 429) throw new Error('Слишком много запросов. Попробуй через минуту.');
-    if (!res.ok) throw new Error(`Ошибка API: ${res.status}`);
+    if (!res.ok) throw new Error(`Ошибка прокси: ${res.status}`);
 
     const json = await res.json();
     const apiMatches = json.matches || [];
@@ -1455,13 +1452,13 @@ function renderAdmin() {
   }
 
   // Reset
-  html += `<div class="sec-label">API ключ football-data.org</div>
+  html += `<div class="sec-label">Прокси для авто-обновления результатов</div>
     <div class="admin-section">
-      <div class="admin-section-title">🔑 Ключ для авто-обновления результатов</div>
+      <div class="admin-section-title">🔗 URL Cloudflare Worker</div>
       <input type="text" id="football-api-key-input" value="${data.footballApiKey || ''}"
-        placeholder="Введи ключ с football-data.org..."
+        placeholder="https://wc2026-proxy.ИМЯ.workers.dev"
         style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font-size:13px;margin-bottom:8px;box-sizing:border-box">
-      <button class="btn btn-sm" onclick="saveFootballApiKey()">💾 Сохранить ключ</button>
+      <button class="btn btn-sm" onclick="saveFootballApiKey()">💾 Сохранить</button>
     </div>`;
 
   html += `<div class="sec-label">Опасная зона</div>
