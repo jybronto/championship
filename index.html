@@ -412,7 +412,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.12';
+const VERSION = 'v3.13';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий'];
 
@@ -614,6 +614,7 @@ function buildDefaultData() {
     matches: generateDefaultMatches(),
     predictions: {},
     lockedBets: {},
+    footballApiKey: null,
   };
 }
 
@@ -625,6 +626,7 @@ function normalizeData(val) {
   if (!val.predictions)    val.predictions    = {};
   if (!val.tournamentPicks) val.tournamentPicks = {};
   if (!val.lockedBets)     val.lockedBets     = {};
+  if (val.footballApiKey === undefined) val.footballApiKey = null;
 
   // Migration: add playoff match stubs if missing (data saved before playoff feature)
   if (val.matches && !val.matches.some(m => m.round)) {
@@ -1035,15 +1037,9 @@ function clearBetFor(matchId, player) {
 // ===================== FETCH RESULTS FROM API =====================
 
 async function fetchAndUpdateResults() {
-  const pin = prompt('PIN для обновления результатов:');
-  if (pin === null) return;
-  if (pin !== '3220') { alert('Неверный PIN'); return; }
-
-  let apiKey = localStorage.getItem('wc2026_apikey') || '';
-  if (!apiKey) {
-    apiKey = (prompt('Введи API ключ с football-data.org\n(регистрация бесплатна на football-data.org):') || '').trim();
-    if (!apiKey) return;
-    localStorage.setItem('wc2026_apikey', apiKey);
+  if (!data.footballApiKey) {
+    alert('API ключ не настроен. Перейди в Администратор → API ключ.');
+    return;
   }
 
   const btn = document.getElementById('fetch-results-btn');
@@ -1051,11 +1047,10 @@ async function fetchAndUpdateResults() {
 
   try {
     const res = await fetch('https://api.football-data.org/v4/competitions/WC/matches?status=FINISHED', {
-      headers: { 'X-Auth-Token': apiKey }
+      headers: { 'X-Auth-Token': data.footballApiKey }
     });
     if (res.status === 403) {
-      localStorage.removeItem('wc2026_apikey');
-      throw new Error('Неверный API ключ — ключ сброшен, введи заново.');
+      throw new Error('Неверный API ключ. Обнови его в Администратор → API ключ.');
     }
     if (res.status === 429) throw new Error('Слишком много запросов. Попробуй через минуту.');
     if (!res.ok) throw new Error(`Ошибка API: ${res.status}`);
@@ -1459,6 +1454,15 @@ function renderAdmin() {
   }
 
   // Reset
+  html += `<div class="sec-label">API ключ football-data.org</div>
+    <div class="admin-section">
+      <div class="admin-section-title">🔑 Ключ для авто-обновления результатов</div>
+      <input type="text" id="football-api-key-input" value="${data.footballApiKey || ''}"
+        placeholder="Введи ключ с football-data.org..."
+        style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font-size:13px;margin-bottom:8px;box-sizing:border-box">
+      <button class="btn btn-sm" onclick="saveFootballApiKey()">💾 Сохранить ключ</button>
+    </div>`;
+
   html += `<div class="sec-label">Опасная зона</div>
     <div class="admin-section">
       <div class="admin-section-title" style="color:var(--red)">⚠️ Сброс данных</div>
@@ -1688,6 +1692,16 @@ function clearResult(matchId) {
   renderLeaderboard();
   renderMatches();
   if (activeTab === 'admin') renderAdmin();
+}
+
+function saveFootballApiKey() {
+  const pin = prompt('PIN для сохранения ключа:');
+  if (pin === null) return;
+  if (pin !== '3220') { alert('Неверный PIN'); return; }
+  const key = (document.getElementById('football-api-key-input').value || '').trim();
+  data.footballApiKey = key || null;
+  saveData(data);
+  alert(key ? '✅ API ключ сохранён.' : 'API ключ удалён.');
 }
 
 function resetAll() {
