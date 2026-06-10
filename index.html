@@ -412,7 +412,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.15';
+const VERSION = 'v3.16';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий'];
 
@@ -931,7 +931,7 @@ function renderMultiBetPanel(match) {
 
   let html = `<div class="multi-card">
     <div class="multi-match-hdr">
-      <span class="match-group-badge">Группа ${match.group} · Тур ${match.md}</span>
+      <span class="match-group-badge">${match.round ? (PLAYOFF_ROUNDS[match.round] || match.round) : `Группа ${match.group} · Тур ${match.md}`}</span>
       <div class="multi-match-teams">${flag(match.home)} ${match.home} — ${flag(match.away)} ${match.away}</div>
       <div class="multi-match-date">⏰ ${fmtDate(match.date)}</div>
     </div>`;
