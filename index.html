@@ -412,7 +412,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.28';
+const VERSION = 'v3.29';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -1051,9 +1051,13 @@ async function fetchAndUpdateResults() {
 
     let updated = 0;
     let timesFixed = 0;
+    let unmapped = [];
+    let noLocal = [];
     apiMatches.forEach(apiM => {
       const apiHome = API_TEAM_MAP[apiM.homeTeam.name] || API_TEAM_MAP[apiM.homeTeam.shortName];
       const apiAway = API_TEAM_MAP[apiM.awayTeam.name] || API_TEAM_MAP[apiM.awayTeam.shortName];
+      if (!apiHome) unmapped.push(apiM.homeTeam.name + ' / ' + apiM.homeTeam.shortName);
+      if (!apiAway) unmapped.push(apiM.awayTeam.name + ' / ' + apiM.awayTeam.shortName);
       if (!apiHome || !apiAway) return;
 
       // Find local match by both teams in any order
@@ -1061,7 +1065,7 @@ async function fetchAndUpdateResults() {
         (m.home === apiHome && m.away === apiAway) ||
         (m.home === apiAway  && m.away === apiHome)
       );
-      if (!local) return;
+      if (!local) { noLocal.push(`${apiHome} vs ${apiAway}`); return; }
 
       // Update kickoff time from API (utcDate is always UTC ISO string)
       if (apiM.utcDate && local.date !== apiM.utcDate) {
@@ -1117,13 +1121,17 @@ async function fetchAndUpdateResults() {
       renderLeaderboard();
       renderMatches();
       if (activeTab === 'admin') renderAdmin();
-      const parts = [];
-      if (updated > 0) parts.push(`${updated} результатов`);
-      if (timesFixed > 0) parts.push(`${timesFixed} времён матчей`);
-      alert(`✅ Обновлено: ${parts.join(', ')}`);
-    } else {
-      alert('Всё актуально, изменений нет.');
     }
+    const parts = [];
+    if (updated > 0) parts.push(`обновлено ${updated} результатов`);
+    if (timesFixed > 0) parts.push(`синхронизировано ${timesFixed} времён`);
+    const finished = apiMatches.filter(m => m.status === 'FINISHED').length;
+    let msg = `API: ${apiMatches.length} матчей (завершённых: ${finished})\n`;
+    if (parts.length) msg += `✅ ${parts.join(', ')}\n`;
+    else msg += `Изменений нет\n`;
+    if (unmapped.length) msg += `\n⚠️ Нераспознанные команды (${[...new Set(unmapped)].length}):\n${[...new Set(unmapped)].slice(0,10).join('\n')}`;
+    if (noLocal.length) msg += `\n⚠️ Не найдены в базе (${noLocal.length}):\n${noLocal.slice(0,5).join('\n')}`;
+    alert(msg);
   } catch (e) {
     alert(`Ошибка: ${e.message}`);
   } finally {
