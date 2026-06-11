@@ -412,7 +412,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.22';
+const VERSION = 'v3.23';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий'];
 
@@ -1481,16 +1481,31 @@ function renderAdmin() {
 // ===================== RENDER PLAYOFF =====================
 
 function renderPlayoff() {
-  // Update autocomplete: only real teams currently in playoff matches
-  const playoffTeams = new Set();
-  data.matches
-    .filter(m => m.round)
-    .forEach(m => {
-      if (TEAMS[m.home]) playoffTeams.add(m.home);
-      if (TEAMS[m.away]) playoffTeams.add(m.away);
+  // Autocomplete: all real teams, prefixed by group position for quick lookup
+  const teamOptions = new Set(Object.keys(TEAMS));
+  // Also include teams already in playoff slots
+  data.matches.filter(m => m.round).forEach(m => {
+    if (TEAMS[m.home]) teamOptions.add(m.home);
+    if (TEAMS[m.away]) teamOptions.add(m.away);
+  });
+  // Group standings hints: "1. Бразилия (Группа A)" etc — add as label in option
+  const standingsHints = [];
+  Object.keys(GROUPS_DEF).forEach(g => {
+    calcGroupStandings(g).forEach((t, i) => {
+      standingsHints.push({ team: t.team, pos: i + 1, group: g });
     });
+  });
   const dl = document.getElementById('teams-list');
-  if (dl) dl.innerHTML = [...playoffTeams].sort().map(t => `<option value="${t}">`).join('');
+  if (dl) {
+    // Sort: 3rd-place teams first (most useful for manual fill), then rest
+    const thirds = standingsHints.filter(h => h.pos === 3).map(h => h.team);
+    const sorted = [...thirds, ...[...teamOptions].filter(t => !thirds.includes(t)).sort()];
+    dl.innerHTML = sorted.map(t => {
+      const hint = standingsHints.find(h => h.team === t);
+      const label = hint ? ` — ${hint.pos}-е место Группа ${hint.group}` : '';
+      return `<option value="${t}" label="${t}${label}">`;
+    }).join('');
+  }
 
   let html = '';
 
