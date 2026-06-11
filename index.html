@@ -412,7 +412,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.25';
+const VERSION = 'v3.26';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -805,15 +805,6 @@ function getEffectiveMatchIdx() {
   }
 
   const idx = Math.max(0, Math.min(sorted.length - 1, currentMatchIdx));
-  const m = sorted[idx];
-
-  // If the manually-selected match is fully done (has result), auto-advance to next upcoming
-  if (m && isLocked(m) && m.result) {
-    const next = nearestUpcoming(idx + 1);
-    currentMatchIdx = next; // update so nav buttons stay consistent
-    return next;
-  }
-
   return idx;
 }
 
