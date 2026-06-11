@@ -412,7 +412,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.19';
+const VERSION = 'v3.20';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий'];
 
@@ -610,6 +610,7 @@ let isFirstLoad = true;
 function buildDefaultData() {
   return {
     tournamentPicks: {},
+    tournamentPicksLocked: false,
     tournamentWinner: null,
     matches: generateDefaultMatches(),
     predictions: {},
@@ -625,6 +626,7 @@ function normalizeData(val) {
   }
   if (!val.predictions)    val.predictions    = {};
   if (!val.tournamentPicks) val.tournamentPicks = {};
+  if (val.tournamentPicksLocked === undefined) val.tournamentPicksLocked = false;
   if (!val.lockedBets)     val.lockedBets     = {};
   if (val.footballApiKey === undefined) val.footballApiKey = null;
 
@@ -1353,18 +1355,30 @@ function renderAdmin() {
   // Tournament picks
   html += '<div class="sec-label">Ставки на чемпиона</div>';
   html += '<div class="admin-section">';
-  html += '<div class="admin-section-title">🏆 Выбор команды каждого игрока</div>';
   const allTeams = Object.keys(TEAMS).sort();
-  PLAYERS.forEach(p => {
-    const cur = data.tournamentPicks[p] || '';
-    html += `<div class="pick-row">
-      <div class="pick-player">${p}</div>
-      <select onchange="setTournamentPick('${p}',this.value)">
-        <option value="">— не выбрано —</option>
-        ${allTeams.map(t => `<option value="${t}" ${cur===t?'selected':''}>${flag(t)} ${t}</option>`).join('')}
-      </select>
-    </div>`;
-  });
+  if (data.tournamentPicksLocked) {
+    html += '<div class="admin-section-title">🔒 Выбор заблокирован</div>';
+    PLAYERS.forEach(p => {
+      const cur = data.tournamentPicks[p] || '';
+      html += `<div class="pick-row">
+        <div class="pick-player">${p}</div>
+        <div style="color:var(--text-dim)">${cur ? `${flag(cur)} ${cur}` : '— не выбрано —'}</div>
+      </div>`;
+    });
+  } else {
+    html += '<div class="admin-section-title">🏆 Выбор команды каждого игрока</div>';
+    PLAYERS.forEach(p => {
+      const cur = data.tournamentPicks[p] || '';
+      html += `<div class="pick-row">
+        <div class="pick-player">${p}</div>
+        <select onchange="setTournamentPick('${p}',this.value)">
+          <option value="">— не выбрано —</option>
+          ${allTeams.map(t => `<option value="${t}" ${cur===t?'selected':''}>${flag(t)} ${t}</option>`).join('')}
+        </select>
+      </div>`;
+    });
+    html += `<button class="btn btn-sm btn-danger" style="margin-top:10px" onclick="lockTournamentPicks()">🔒 Заблокировать выбор навсегда</button>`;
+  }
   html += '</div>';
 
   // Enter results — upcoming locked matches
@@ -1533,9 +1547,20 @@ function renderPlayoff() {
 }
 
 function setTournamentPick(player, team) {
+  if (data.tournamentPicksLocked) return;
   if (team) data.tournamentPicks[player] = team;
   else delete data.tournamentPicks[player];
   saveData(data);
+}
+
+function lockTournamentPicks() {
+  const pin = prompt('PIN для блокировки:');
+  if (pin === null) return;
+  if (pin !== '3220') { alert('Неверный PIN'); return; }
+  if (!confirm('Заблокировать выбор команд навсегда? Отменить будет невозможно!')) return;
+  data.tournamentPicksLocked = true;
+  saveData(data);
+  renderAdmin();
 }
 
 function setWinner() {
