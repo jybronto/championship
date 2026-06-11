@@ -412,9 +412,9 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.24';
+const VERSION = 'v3.25';
 
-const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий'];
+const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
 const TEAMS = {
   'Мексика':'🇲🇽','ЮАР':'🇿🇦','Южная Корея':'🇰🇷','Чехия':'🇨🇿',
@@ -1375,6 +1375,7 @@ function renderAdmin() {
         <div style="color:var(--text-dim)">${cur ? `${flag(cur)} ${cur}` : '— не выбрано —'}</div>
       </div>`;
     });
+    html += `<button class="btn btn-sm" style="margin-top:10px" onclick="unlockTournamentPicks()">🔓 Разблокировать</button>`;
   } else {
     html += '<div class="admin-section-title">🏆 Выбор команды каждого игрока</div>';
     PLAYERS.forEach(p => {
@@ -1584,6 +1585,15 @@ function lockTournamentPicks() {
   if (pin !== '3220') { alert('Неверный PIN'); return; }
   if (!confirm('Заблокировать выбор команд навсегда? Отменить будет невозможно!')) return;
   data.tournamentPicksLocked = true;
+  saveData(data);
+  renderAdmin();
+}
+
+function unlockTournamentPicks() {
+  const pin = prompt('PIN для разблокировки:');
+  if (pin === null) return;
+  if (pin !== '3220') { alert('Неверный PIN'); return; }
+  data.tournamentPicksLocked = false;
   saveData(data);
   renderAdmin();
 }
