@@ -412,7 +412,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.20';
+const VERSION = 'v3.21';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий'];
 
@@ -1050,7 +1050,7 @@ async function fetchAndUpdateResults() {
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Загрузка...'; }
 
   try {
-    const res = await fetch(`${PROXY_URL}/competitions/WC/matches?status=FINISHED`);
+    const res = await fetch(`${PROXY_URL}/competitions/WC/matches`);
     if (res.status === 403) throw new Error('Прокси вернул 403 — проверь Worker и ключ в нём.');
     if (res.status === 429) throw new Error('Слишком много запросов. Попробуй через минуту.');
     if (!res.ok) throw new Error(`Ошибка прокси: ${res.status}`);
@@ -1059,14 +1059,11 @@ async function fetchAndUpdateResults() {
     const apiMatches = json.matches || [];
 
     let updated = 0;
+    let timesFixed = 0;
     apiMatches.forEach(apiM => {
       const apiHome = API_TEAM_MAP[apiM.homeTeam.name] || API_TEAM_MAP[apiM.homeTeam.shortName];
       const apiAway = API_TEAM_MAP[apiM.awayTeam.name] || API_TEAM_MAP[apiM.awayTeam.shortName];
       if (!apiHome || !apiAway) return;
-
-      const h90 = apiM.score.fullTime.home;
-      const a90 = apiM.score.fullTime.away;
-      if (h90 === null || h90 === undefined || a90 === null || a90 === undefined) return;
 
       // Find local match by both teams in any order
       const local = data.matches.find(m =>
@@ -1074,6 +1071,16 @@ async function fetchAndUpdateResults() {
         (m.home === apiAway  && m.away === apiHome)
       );
       if (!local) return;
+
+      // Update kickoff time from API (utcDate is always UTC ISO string)
+      if (apiM.utcDate && local.date !== apiM.utcDate) {
+        local.date = apiM.utcDate;
+        timesFixed++;
+      }
+
+      const h90 = apiM.score?.fullTime?.home;
+      const a90 = apiM.score?.fullTime?.away;
+      if (h90 === null || h90 === undefined || a90 === null || a90 === undefined) return;
 
       // Apply score in local home/away order
       const swapped = local.home === apiAway;
@@ -1114,14 +1121,17 @@ async function fetchAndUpdateResults() {
       }
     });
 
-    if (updated > 0) {
+    if (updated > 0 || timesFixed > 0) {
       saveData(data);
       renderLeaderboard();
       renderMatches();
       if (activeTab === 'admin') renderAdmin();
-      alert(`✅ Обновлено ${updated} результатов!`);
+      const parts = [];
+      if (updated > 0) parts.push(`${updated} результатов`);
+      if (timesFixed > 0) parts.push(`${timesFixed} времён матчей`);
+      alert(`✅ Обновлено: ${parts.join(', ')}`);
     } else {
-      alert('Новых завершённых матчей не найдено.');
+      alert('Всё актуально, изменений нет.');
     }
   } catch (e) {
     alert(`Ошибка: ${e.message}`);
