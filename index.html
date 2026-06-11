@@ -412,7 +412,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.26';
+const VERSION = 'v3.27';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -1429,35 +1429,6 @@ function renderAdmin() {
     .filter(m => m.result)
     .sort((a,b) => new Date(b.date) - new Date(a.date))
     .slice(0, 10);
-
-  if (withResult.length) {
-    html += '<div class="sec-label">Изменить результаты</div>';
-    withResult.forEach(m => {
-      const isPlayoff = !!m.round;
-      const teamsKnown = isPlayoff && !!TEAMS[m.home] && !!TEAMS[m.away];
-      const winnerDisplay = isPlayoff && m.result.winner ? ` → ${flag(m.result.winner)} ${m.result.winner}` : '';
-      const winnerSelect = teamsKnown ? `<select id="rw-${m.id}" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:4px 6px;font-size:12px;flex-shrink:0">
-        <option value="">— по счёту —</option>
-        <option value="${m.home}" ${m.result.winner===m.home?'selected':''}>${flag(m.home)} ${m.home}</option>
-        <option value="${m.away}" ${m.result.winner===m.away?'selected':''}>${flag(m.away)} ${m.away}</option>
-      </select>` : '';
-      html += `<div class="admin-section">
-        <div class="admin-section-title" style="font-size:12px">${flag(m.home)} ${m.home} ${m.result.home} : ${m.result.away} ${flag(m.away)} ${m.away}${winnerDisplay}</div>
-        <div class="result-row">
-          <input type="text" inputmode="numeric" pattern="[0-9]*" id="rh-${m.id}" value="${m.result.home}"
-            onfocus="this.dataset.prev=this.value;this.value=''"
-            onblur="if(this.value.trim()==='')this.value=this.dataset.prev||'0'">
-          <div style="color:var(--text-dim)">:</div>
-          <input type="text" inputmode="numeric" pattern="[0-9]*" id="ra-${m.id}" value="${m.result.away}"
-            onfocus="this.dataset.prev=this.value;this.value=''"
-            onblur="if(this.value.trim()==='')this.value=this.dataset.prev||'0'">
-          ${winnerSelect}
-          <button class="btn btn-sm" style="flex-shrink:0" onclick="saveResult(${m.id})">💾</button>
-          <button class="btn btn-sm btn-danger" style="flex-shrink:0" onclick="clearResult(${m.id})">✕</button>
-        </div>
-      </div>`;
-    });
-  }
 
   // Reset
 
