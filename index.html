@@ -412,7 +412,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.23';
+const VERSION = 'v3.24';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий'];
 
@@ -879,7 +879,7 @@ function renderLeaderboard() {
 }
 
 function renderBetInputs(match, adminMode) {
-  const betLocked = !adminMode && data.lockedBets && data.lockedBets[match.id];
+  const betLocked = !adminMode && !!(data.lockedBets?.[match.id] || isLocked(match));
   const isPlayoff = !!match.round;
   const teamsKnown = isPlayoff && !!TEAMS[match.home] && !!TEAMS[match.away];
   let html = '<div class="cbet-grid">';
@@ -933,7 +933,7 @@ function renderBetInputs(match, adminMode) {
 function renderMultiBetPanel(match) {
   const leaders = getLeaders(data);
   const maxPts = getStandings(data)[0]?.total ?? 0;
-  const betLocked = data.lockedBets && data.lockedBets[match.id];
+  const betLocked = !!(data.lockedBets?.[match.id] || isLocked(match));
 
   let html = `<div class="multi-card">
     <div class="multi-match-hdr">
