@@ -412,7 +412,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.27';
+const VERSION = 'v3.28';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -1196,30 +1196,10 @@ function renderMatchCard(m) {
     background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text)`;
 
   const centerHtml = m.result
-    // Result saved → show locked score text with spaces around colon
     ? `<div class="match-result-score">${m.result.home} : ${m.result.away}</div>`
-    // No result → show editable inputs + ✓
-    : `<div style="display:flex;flex-direction:column;align-items:center;gap:5px;flex-shrink:0">
-        <div style="display:flex;align-items:center;gap:6px">
-          <input type="text" inputmode="numeric" pattern="[0-9]*" id="rh-${m.id}" value="0"
-            onfocus="this.dataset.prev=this.value;this.value=''"
-            onblur="if(this.value.trim()==='')this.value=this.dataset.prev||'0'"
-            style="${inputStyle}">
-          <span style="font-size:18px;font-weight:700;color:var(--text-dim);margin:0 2px">:</span>
-          <input type="text" inputmode="numeric" pattern="[0-9]*" id="ra-${m.id}" value="0"
-            onfocus="this.dataset.prev=this.value;this.value=''"
-            onblur="if(this.value.trim()==='')this.value=this.dataset.prev||'0'"
-            style="${inputStyle}">
-        </div>
-        <button class="btn btn-sm" onclick="saveResult(${m.id})"
-          style="padding:3px 14px;font-size:12px">✓</button>
-      </div>`;
+    : `<div class="match-result-score" style="color:var(--text-dim)">— : —</div>`;
 
-  // ✕ clear button — only when result exists, right side of the row
-  const clearBtn = m.result
-    ? `<button class="btn btn-sm btn-danger" onclick="clearResult(${m.id})"
-        style="flex-shrink:0;margin-left:6px;padding:6px 10px;font-size:14px;align-self:center">✕</button>`
-    : '';
+  const clearBtn = '';
 
   let predHtml = '';
   if (PLAYERS.some(p => data.predictions[`${m.id}_${p}`] || m.result)) {
@@ -1383,46 +1363,6 @@ function renderAdmin() {
   }
   html += '</div>';
 
-  // Enter results — upcoming locked matches
-  const lockedNoResult = data.matches
-    .filter(m => isLocked(m) && !m.result)
-    .sort((a,b) => new Date(a.date) - new Date(b.date))
-    .slice(0, 20);
-
-  if (lockedNoResult.length) {
-    html += '<div class="sec-label">Ввод результатов</div>';
-    lockedNoResult.forEach(m => {
-      const isPlayoff = !!m.round;
-      const matchTitle = isPlayoff
-        ? `${PLAYOFF_ROUNDS[m.round] || m.round} · ${fmtDate(m.date)}`
-        : `Группа ${m.group} · ${fmtDate(m.date)}`;
-      const teamsKnown = isPlayoff && !!TEAMS[m.home] && !!TEAMS[m.away];
-      const winnerSelect = teamsKnown ? `<div style="margin-top:8px">
-        <div style="font-size:11px;color:var(--text-dim);margin-bottom:4px">Кто прошёл дальше (при ничье / пенальти):</div>
-        <select id="rw-${m.id}" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:6px 8px;font-size:13px">
-          <option value="">— по счёту (нет ничьей) —</option>
-          <option value="${m.home}">${flag(m.home)} ${m.home}</option>
-          <option value="${m.away}">${flag(m.away)} ${m.away}</option>
-        </select>
-      </div>` : '';
-      html += `<div class="admin-section">
-        <div class="admin-section-title">${matchTitle}</div>
-        <div class="result-row">
-          <div class="team-name">${flag(m.home)} ${m.home}</div>
-          <input type="text" inputmode="numeric" pattern="[0-9]*" id="rh-${m.id}" value="0"
-            onfocus="this.dataset.prev=this.value;this.value=''"
-            onblur="if(this.value.trim()==='')this.value=this.dataset.prev||'0'">
-          <div style="color:var(--text-dim)">:</div>
-          <input type="text" inputmode="numeric" pattern="[0-9]*" id="ra-${m.id}" value="0"
-            onfocus="this.dataset.prev=this.value;this.value=''"
-            onblur="if(this.value.trim()==='')this.value=this.dataset.prev||'0'">
-          <div class="team-name" style="text-align:right">${flag(m.away)} ${m.away}</div>
-        </div>
-        ${winnerSelect}
-        <button class="btn btn-sm" onclick="saveResult(${m.id})">Сохранить результат</button>
-      </div>`;
-    });
-  }
 
   // Edit already entered results
   const withResult = data.matches
