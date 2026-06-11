@@ -412,7 +412,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.31';
+const VERSION = 'v3.32';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -1272,8 +1272,7 @@ function renderBets() {
     [...document.querySelectorAll('.bet-row.expanded')].map(el => el.dataset.mid)
   );
 
-  const upcoming = data.matches
-    .filter(m => !isLocked(m))
+  const allMatches = data.matches
     .sort((a,b) => new Date(a.date) - new Date(b.date));
 
   let html = '';
@@ -1291,31 +1290,27 @@ function renderBets() {
     </div>`;
   }
 
-  if (!upcoming.length) {
-    html += '<div class="empty-state">Нет предстоящих матчей</div>';
-  } else {
-    upcoming.forEach(m => {
-      const betCount = PLAYERS.filter(p => data.predictions[`${m.id}_${p}`]).length;
-      const isLockedBet = data.lockedBets && data.lockedBets[m.id];
-      const d = new Date(m.date);
-      const mon = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'][d.getMonth()];
-      const dateStr = `${d.getDate()} ${mon} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  allMatches.forEach(m => {
+    const betCount = PLAYERS.filter(p => data.predictions[`${m.id}_${p}`]).length;
+    const isLockedBet = !!(data.lockedBets?.[m.id] || isLocked(m));
+    const d = new Date(m.date);
+    const mon = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'][d.getMonth()];
+    const dateStr = `${d.getDate()} ${mon} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
 
-      html += `<div class="bet-row" data-mid="${m.id}">
-        <div class="bet-row-hdr" onclick="toggleBetRow(${m.id})">
-          <span class="bet-row-teams">${flag(m.home)} ${m.home} — ${flag(m.away)} ${m.away}</span>
-          <span class="bet-row-date">${dateStr}</span>
-          <span class="bet-row-count">${betCount}/7</span>
-          <span style="font-size:12px">${isLockedBet ? '🔒' : ''}</span>
-          <span class="bet-row-chevron">▼</span>
-        </div>
-        <div class="bet-row-body">
-          ${renderBetInputs(m, betsUnlocked)}
-          ${betsUnlocked ? `<button class="btn btn-sm" style="margin-top:8px" onclick="submitAllBets(${m.id})">💾 Зафиксировать</button>` : ''}
-        </div>
-      </div>`;
-    });
-  }
+    html += `<div class="bet-row" data-mid="${m.id}">
+      <div class="bet-row-hdr" onclick="toggleBetRow(${m.id})">
+        <span class="bet-row-teams">${flag(m.home)} ${m.home} — ${flag(m.away)} ${m.away}</span>
+        <span class="bet-row-date">${dateStr}</span>
+        <span class="bet-row-count">${betCount}/${PLAYERS.length}</span>
+        <span style="font-size:12px">${isLockedBet ? '🔒' : ''}</span>
+        <span class="bet-row-chevron">▼</span>
+      </div>
+      <div class="bet-row-body">
+        ${renderBetInputs(m, betsUnlocked)}
+        ${betsUnlocked && !isLocked(m) ? `<button class="btn btn-sm" style="margin-top:8px" onclick="submitAllBets(${m.id})">💾 Зафиксировать</button>` : ''}
+      </div>
+    </div>`;
+  });
 
   document.getElementById('bets-content').innerHTML = html;
 
