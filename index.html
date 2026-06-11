@@ -412,7 +412,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.21';
+const VERSION = 'v3.22';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий'];
 
@@ -943,7 +943,7 @@ function renderMultiBetPanel(match) {
     </div>`;
 
   if (betLocked) {
-    html += `<div class="info-box" style="margin-bottom:10px;font-size:12px">🔒 Ставки зафиксированы · Изменить → вкладка <strong>Ставки</strong></div>`;
+    html += `<div class="info-box" style="margin-bottom:10px;font-size:12px">🔒 Ставки зафиксированы</div>`;
   } else if (maxPts > 0 && leaders.length) {
     html += `<div class="warn-box" style="margin-bottom:10px">⚠️ Первым ставит: <strong>${leaders[0]}</strong></div>`;
   }
