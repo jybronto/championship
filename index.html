@@ -412,7 +412,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.30';
+const VERSION = 'v3.31';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -1118,13 +1118,10 @@ async function fetchAndUpdateResults() {
       renderMatches();
       if (activeTab === 'admin') renderAdmin();
     }
-    const finished = apiMatches.filter(m => m.status === 'FINISHED').length;
     const parts = [];
-    if (updated > 0) parts.push(`обновлено ${updated} результатов`);
-    if (timesFixed > 0) parts.push(`синхронизировано ${timesFixed} времён`);
-    let msg = `API: ${apiMatches.length} матчей (завершённых: ${finished})\n`;
-    msg += parts.length ? `✅ ${parts.join(', ')}` : `Изменений нет`;
-    alert(msg);
+    if (updated > 0) parts.push(`${updated} результатов`);
+    if (timesFixed > 0) parts.push(`${timesFixed} времён матчей`);
+    alert(parts.length ? `✅ Обновлено: ${parts.join(', ')}` : `Изменений нет`);
   } catch (e) {
     alert(`Ошибка: ${e.message}`);
   } finally {
