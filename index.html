@@ -412,7 +412,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.38';
+const VERSION = 'v3.39';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -1204,8 +1204,7 @@ function renderMatches() {
     ? new Date(b.date) - new Date(a.date)   // past: newest first
     : new Date(a.date) - new Date(b.date)); // others: oldest first
 
-  const fetchBtn = `<div style="display:flex;justify-content:flex-end;gap:6px;margin-bottom:8px">
-    <button class="btn btn-sm btn-sec" onclick="checkApi()">🔍 Статус API</button>
+  const fetchBtn = `<div style="display:flex;justify-content:flex-end;margin-bottom:8px">
     <button id="fetch-results-btn" class="btn btn-sm btn-sec" onclick="fetchAndUpdateResults()">🔄 Обновить результаты</button>
   </div>`;
   let html = fetchBtn + barHtml;
