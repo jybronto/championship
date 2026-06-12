@@ -412,7 +412,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.35';
+const VERSION = 'v3.36';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -1037,6 +1037,28 @@ function clearBetFor(matchId, player) {
 
 const PROXY_URL = 'https://winter-night-ef77.jybronto.workers.dev';
 
+async function checkApi() {
+  try {
+    const res = await fetch(`${PROXY_URL}/competitions/WC/matches`);
+    if (!res.ok) { alert(`❌ API вернул ${res.status}`); return; }
+    const json = await res.json();
+    const all = json.matches || [];
+    const finished = all.filter(m => m.status === 'FINISHED');
+    const inPlay = all.filter(m => m.status === 'IN_PLAY' || m.status === 'PAUSED');
+    const canada = all.find(m =>
+      m.homeTeam?.name?.includes('Canada') || m.awayTeam?.name?.includes('Canada') ||
+      m.homeTeam?.name?.includes('Bosnia') || m.awayTeam?.name?.includes('Bosnia')
+    );
+    let msg = `✅ API работает\nВсего матчей: ${all.length}\nЗавершённых: ${finished.length}\nИдёт сейчас: ${inPlay.length}`;
+    if (canada) {
+      msg += `\n\nКанада/Босния:\nСтатус: ${canada.status}\nСчёт: ${canada.score?.fullTime?.home ?? '—'} : ${canada.score?.fullTime?.away ?? '—'}`;
+    }
+    alert(msg);
+  } catch(e) {
+    alert(`❌ Ошибка: ${e.message}`);
+  }
+}
+
 async function fetchAndUpdateResults() {
   const btn = document.getElementById('fetch-results-btn');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Загрузка...'; }
@@ -1178,7 +1200,8 @@ function renderMatches() {
     ? new Date(b.date) - new Date(a.date)   // past: newest first
     : new Date(a.date) - new Date(b.date)); // others: oldest first
 
-  const fetchBtn = `<div style="display:flex;justify-content:flex-end;margin-bottom:8px">
+  const fetchBtn = `<div style="display:flex;justify-content:flex-end;gap:6px;margin-bottom:8px">
+    <button class="btn btn-sm btn-sec" onclick="checkApi()">🔍 Статус API</button>
     <button id="fetch-results-btn" class="btn btn-sm btn-sec" onclick="fetchAndUpdateResults()">🔄 Обновить результаты</button>
   </div>`;
   let html = fetchBtn + barHtml;
