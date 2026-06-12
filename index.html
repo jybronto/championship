@@ -412,7 +412,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.33';
+const VERSION = 'v3.34';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -670,10 +670,6 @@ function initFirebase() {
       renderTab(activeTab);
     }
 
-    if (adminSession) {
-      const standings = getStandings(data).map(s => ({ name: s.name, points: s.total }));
-      firebase.database().ref('wc2026/standings').set(standings);
-    }
   }, err => {
     console.error('Firebase:', err);
     data = buildDefaultData();
@@ -685,6 +681,8 @@ function saveData(d) {
   data = d;
   if (stateRef) {
     stateRef.set(d);          // syncs to all connected devices instantly
+    const standings = getStandings(d).map(s => ({ name: s.name, points: s.total }));
+    firebase.database().ref('wc2026/standings').set(standings);
   } else {
     localStorage.setItem('wc2026', JSON.stringify(d));
   }
@@ -765,7 +763,6 @@ let activeTab = 'lb';
 let matchFilter = 'upcoming';
 let currentMatchIdx = -1; // -1 = auto → nearest upcoming match
 let betsUnlocked = false;  // true after PIN 3220 on Ставки tab
-let adminSession = false;  // true after any correct PIN entry — used to gate standings writes
 
 // ===================== TAB SWITCHING =====================
 
@@ -1266,7 +1263,6 @@ function checkBetsPin() {
   const pin = prompt('PIN для редактирования ставок:');
   if (pin === '3220') {
     betsUnlocked = true;
-    adminSession = true;
     renderBets();
   } else if (pin !== null) {
     alert('Неверный PIN');
@@ -1485,7 +1481,6 @@ function lockTournamentPicks() {
   const pin = prompt('PIN для блокировки:');
   if (pin === null) return;
   if (pin !== '3220') { alert('Неверный PIN'); return; }
-  adminSession = true;
   if (!confirm('Заблокировать выбор команд навсегда? Отменить будет невозможно!')) return;
   data.tournamentPicksLocked = true;
   saveData(data);
@@ -1496,7 +1491,6 @@ function unlockTournamentPicks() {
   const pin = prompt('PIN для разблокировки:');
   if (pin === null) return;
   if (pin !== '3220') { alert('Неверный PIN'); return; }
-  adminSession = true;
   data.tournamentPicksLocked = false;
   saveData(data);
   renderAdmin();
@@ -1540,7 +1534,6 @@ function populateR32() {
   const pin = prompt('PIN для заполнения плей-офф:');
   if (pin === null) return;
   if (pin !== '3220') { alert('Неверный PIN'); return; }
-  adminSession = true;
 
   // Build slot→team map from group standings
   const slotToTeam = {};
@@ -1645,7 +1638,6 @@ function saveFootballApiKey() {
   const pin = prompt('PIN для сохранения ключа:');
   if (pin === null) return;
   if (pin !== '3220') { alert('Неверный PIN'); return; }
-  adminSession = true;
   const key = (document.getElementById('football-api-key-input').value || '').trim();
   data.footballApiKey = key || null;
   saveData(data);
@@ -1656,7 +1648,6 @@ function resetAll() {
   const pin = prompt('Введи PIN для сброса данных:');
   if (pin === null) return;
   if (pin !== '3220') { alert('Неверный PIN'); return; }
-  adminSession = true;
   if (!confirm('Удалить ВСЕ данные? Это нельзя отменить!')) return;
   data = buildDefaultData();
   saveData(data);
