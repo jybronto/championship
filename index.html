@@ -412,7 +412,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.34';
+const VERSION = 'v3.35';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -681,8 +681,6 @@ function saveData(d) {
   data = d;
   if (stateRef) {
     stateRef.set(d);          // syncs to all connected devices instantly
-    const standings = getStandings(d).map(s => ({ name: s.name, points: s.total }));
-    firebase.database().ref('wc2026/standings').set(standings);
   } else {
     localStorage.setItem('wc2026', JSON.stringify(d));
   }
@@ -1121,6 +1119,16 @@ async function fetchAndUpdateResults() {
       renderMatches();
       if (activeTab === 'admin') renderAdmin();
     }
+
+    // Write standings to wc2026/standings:
+    // - always if standings don't exist yet (initial populate)
+    // - when results were updated
+    const hasExisting = Array.isArray(data.standings) && data.standings.length > 0;
+    if ((updated > 0 || !hasExisting) && stateRef) {
+      const st = getStandings(data).map(s => ({ name: s.name, points: s.total }));
+      firebase.database().ref('wc2026/standings').set(st);
+    }
+
     const parts = [];
     if (updated > 0) parts.push(`${updated} результатов`);
     if (timesFixed > 0) parts.push(`${timesFixed} времён матчей`);
