@@ -412,7 +412,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.36';
+const VERSION = 'v3.37';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -1051,7 +1051,11 @@ async function checkApi() {
     );
     let msg = `✅ API работает\nВсего матчей: ${all.length}\nЗавершённых: ${finished.length}\nИдёт сейчас: ${inPlay.length}`;
     if (canada) {
+      const h = canada.homeTeam, a = canada.awayTeam;
       msg += `\n\nКанада/Босния:\nСтатус: ${canada.status}\nСчёт: ${canada.score?.fullTime?.home ?? '—'} : ${canada.score?.fullTime?.away ?? '—'}`;
+      msg += `\nДом: name="${h.name}" short="${h.shortName}"`;
+      msg += `\nГость: name="${a.name}" short="${a.shortName}"`;
+      msg += `\nМаппинг: ${API_TEAM_MAP[h.name]||API_TEAM_MAP[h.shortName]||'❌'} vs ${API_TEAM_MAP[a.name]||API_TEAM_MAP[a.shortName]||'❌'}`;
     }
     alert(msg);
   } catch(e) {
