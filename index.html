@@ -413,7 +413,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.42';
+const VERSION = 'v3.43';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -1083,6 +1083,7 @@ async function fetchAndUpdateResults() {
 
     let updated = 0;
     let timesFixed = 0;
+    let confirmed = 0;
     apiMatches.forEach(apiM => {
       const apiHome = API_TEAM_MAP[apiM.homeTeam.name] || API_TEAM_MAP[apiM.homeTeam.shortName];
       const apiAway = API_TEAM_MAP[apiM.awayTeam.name] || API_TEAM_MAP[apiM.awayTeam.shortName];
@@ -1123,9 +1124,12 @@ async function fetchAndUpdateResults() {
         }
       }
 
-      // Skip if nothing changed
+      // Skip if nothing changed (but if manual flag exists and API agrees → clear flag)
       const ex = local.result;
-      if (ex && ex.home === scoreHome && ex.away === scoreAway && ex.winner === (winner || undefined)) return;
+      if (ex && ex.home === scoreHome && ex.away === scoreAway && ex.winner === (winner || undefined)) {
+        if (ex.manual) { delete ex.manual; confirmed++; }
+        return;
+      }
 
       local.result = { home: scoreHome, away: scoreAway };
       if (winner) local.result.winner = winner;
@@ -1144,16 +1148,13 @@ async function fetchAndUpdateResults() {
       }
     });
 
-    if (updated > 0 || timesFixed > 0) {
+    if (updated > 0 || timesFixed > 0 || confirmed > 0) {
       saveData(data);
       renderLeaderboard();
       renderMatches();
       if (activeTab === 'admin') renderAdmin();
     }
 
-    // Write standings to wc2026/standings:
-    // - always if standings don't exist yet (initial populate)
-    // - when results were updated
     const hasExisting = Array.isArray(data.standings) && data.standings.length > 0;
     if ((updated > 0 || !hasExisting) && stateRef) {
       const st = getStandings(data).map(s => ({ name: s.name, points: s.total }));
@@ -1162,7 +1163,8 @@ async function fetchAndUpdateResults() {
 
     const parts = [];
     if (updated > 0) parts.push(`${updated} результатов`);
-    if (timesFixed > 0) parts.push(`${timesFixed} времён матчей`);
+    if (timesFixed > 0) parts.push(`${timesFixed} времён`);
+    if (confirmed > 0) parts.push(`${confirmed} ✏️→✅ подтверждено API`);
     alert(parts.length ? `✅ Обновлено: ${parts.join(', ')}` : `Изменений нет`);
   } catch (e) {
     alert(`Ошибка: ${e.message}`);
@@ -1399,11 +1401,40 @@ function renderAdmin() {
   html += '</div>';
 
 
-  // Edit already entered results
+  // Manual result correction
   const withResult = data.matches
     .filter(m => m.result)
     .sort((a,b) => new Date(b.date) - new Date(a.date))
-    .slice(0, 10);
+    .slice(0, 15);
+
+  if (withResult.length) {
+    html += '<div class="sec-label">Исправить результат</div>';
+    html += '<div class="admin-section">';
+    withResult.forEach(m => {
+      const isPlayoff = !!m.round;
+      const label = isPlayoff ? (PLAYOFF_ROUNDS[m.round] || m.round) : `Группа ${m.group}`;
+      const manualTag = m.result.manual ? ' <span style="color:var(--yellow);font-size:10px">✏️ручная</span>' : '';
+      const teamsKnown = isPlayoff && !!TEAMS[m.home] && !!TEAMS[m.away];
+      const winnerSelect = teamsKnown ? `<select id="rw-${m.id}" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:4px 6px;font-size:12px;flex-shrink:0">
+        <option value="">— по счёту —</option>
+        <option value="${m.home}" ${m.result.winner===m.home?'selected':''}>${flag(m.home)} ${m.home}</option>
+        <option value="${m.away}" ${m.result.winner===m.away?'selected':''}>${flag(m.away)} ${m.away}</option>
+      </select>` : '';
+      html += `<div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--border)">
+        <div style="font-size:11px;color:var(--text-dim);margin-bottom:4px">${label} · ${flag(m.home)} ${m.home} vs ${flag(m.away)} ${m.away}${manualTag}</div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <input type="text" inputmode="numeric" id="rh-${m.id}" value="${m.result.home}"
+            style="width:40px;text-align:center;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px">
+          <span style="color:var(--text-dim)">:</span>
+          <input type="text" inputmode="numeric" id="ra-${m.id}" value="${m.result.away}"
+            style="width:40px;text-align:center;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px">
+          ${winnerSelect}
+          <button class="btn btn-sm" onclick="saveManualResult(${m.id})">💾</button>
+        </div>
+      </div>`;
+    });
+    html += '</div>';
+  }
 
   // Reset
 
@@ -1514,6 +1545,26 @@ function setTournamentPick(player, team) {
   if (team) data.tournamentPicks[player] = team;
   else delete data.tournamentPicks[player];
   saveData(data);
+}
+
+function saveManualResult(matchId) {
+  const pin = prompt('PIN для исправления результата:');
+  if (pin === null) return;
+  if (pin !== '3220') { alert('Неверный PIN'); return; }
+  const m = data.matches.find(x => x.id === matchId);
+  if (!m) return;
+  const h = parseInt(document.getElementById(`rh-${matchId}`)?.value) ?? 0;
+  const a = parseInt(document.getElementById(`ra-${matchId}`)?.value) ?? 0;
+  if (isNaN(h) || isNaN(a)) { alert('Введи корректный счёт'); return; }
+  const rwEl = document.getElementById(`rw-${matchId}`);
+  m.result = { home: h, away: a, manual: true };
+  if (rwEl && rwEl.value) m.result.winner = rwEl.value;
+  else if (m.round && h !== a) m.result.winner = h > a ? m.home : m.away;
+  saveData(data);
+  renderAdmin();
+  renderMatches();
+  renderLeaderboard();
+  alert(`✅ Сохранено: ${h}:${a} (✏️ ручная правка — ждёт подтверждения API)`);
 }
 
 function lockTournamentPicks() {
