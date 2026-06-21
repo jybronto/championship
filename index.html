@@ -413,7 +413,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.48';
+const VERSION = 'v3.49';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -1423,13 +1423,15 @@ function renderAdmin() {
 
 
   // API Log
-  html += '<div class="sec-label">Лог обновлений API</div>';
-  html += '<div class="admin-section">';
-  const log = data.apiLog || [];
+  const log = Array.isArray(data.apiLog) ? data.apiLog : Object.values(data.apiLog || {});
+  html += `<details style="margin-bottom:12px">
+    <summary style="cursor:pointer;font-size:13px;font-weight:600;color:var(--text-dim);padding:8px 12px;background:var(--surface);border-radius:10px;list-style:none;display:flex;align-items:center;gap:6px">
+      <span>▶</span> Лог обновлений API
+    </summary>
+    <div style="margin-top:6px;padding:10px 12px;background:var(--surface);border-radius:10px">`;
   if (!log.length) {
     html += '<div style="color:var(--text-dim);font-size:13px">Обновлений ещё не было</div>';
   } else {
-    html += `<div style="font-size:12px;color:var(--text-dim);margin-bottom:6px">${log.length} записей</div>`;
     html += '<div style="max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:4px">';
     log.forEach(entry => {
       const d = new Date(entry.ts);
@@ -1441,7 +1443,7 @@ function renderAdmin() {
     });
     html += '</div>';
   }
-  html += '</div>';
+  html += '</div></details>';
 
   // Reset
 
