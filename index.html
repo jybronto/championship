@@ -413,7 +413,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.47';
+const VERSION = 'v3.48';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -1140,6 +1140,7 @@ async function fetchAndUpdateResults() {
           delete ex.manual;
           confirmed++;
           pushApiLog(data, `✅ Подтверждено: ${local.home} ${scoreHome}:${scoreAway} ${local.away} (✏️→API)`);
+        }
         return;
       }
 
