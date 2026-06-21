@@ -413,7 +413,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.44';
+const VERSION = 'v3.45';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -1068,6 +1068,13 @@ async function checkApi() {
   }
 }
 
+function pushApiLog(d, desc) {
+  if (!d.apiLog) d.apiLog = [];
+  const ts = new Date().toISOString();
+  d.apiLog.unshift({ ts, desc });
+  if (d.apiLog.length > 100) d.apiLog.length = 100;
+}
+
 async function fetchAndUpdateResults() {
   const btn = document.getElementById('fetch-results-btn');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Загрузка...'; }
@@ -1100,6 +1107,7 @@ async function fetchAndUpdateResults() {
       if (apiM.utcDate && local.date !== apiM.utcDate) {
         local.date = apiM.utcDate;
         timesFixed++;
+        pushApiLog(data, `🕐 Время: ${local.home} vs ${local.away} → ${fmtDate(apiM.utcDate)}`);
       }
 
       const h90 = apiM.score?.fullTime?.home;
@@ -1131,6 +1139,7 @@ async function fetchAndUpdateResults() {
         if (ex.home === scoreHome && ex.away === scoreAway) {
           delete ex.manual;
           confirmed++;
+          pushApiLog(data, `✅ Подтверждено: ${local.home} ${scoreHome}:${scoreAway} ${local.away} (✏️→API)`);
         }
         return;
       }
@@ -1138,9 +1147,11 @@ async function fetchAndUpdateResults() {
       // Skip if nothing changed
       if (ex && ex.home === scoreHome && ex.away === scoreAway && ex.winner === (winner || undefined)) return;
 
+      const prevScore = ex ? `${ex.home}:${ex.away}` : 'нет';
       local.result = { home: scoreHome, away: scoreAway };
       if (winner) local.result.winner = winner;
       updated++;
+      pushApiLog(data, `⚽ Результат: ${local.home} ${scoreHome}:${scoreAway} ${local.away}${ex ? ` (было ${prevScore})` : ''}`);
 
       // Auto-advance bracket for playoff
       if (local.round && BRACKET_NEXT[local.id] && winner) {
@@ -1411,6 +1422,28 @@ function renderAdmin() {
   html += '</div>';
 
 
+  // API Log
+  html += '<div class="sec-label">Лог обновлений API</div>';
+  html += '<div class="admin-section">';
+  const log = data.apiLog || [];
+  if (!log.length) {
+    html += '<div style="color:var(--text-dim);font-size:13px">Обновлений ещё не было</div>';
+  } else {
+    html += `<div style="font-size:12px;color:var(--text-dim);margin-bottom:6px">${log.length} записей</div>`;
+    html += '<div style="max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:4px">';
+    log.forEach(entry => {
+      const d = new Date(entry.ts);
+      const timeStr = d.toLocaleString('ru-RU', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+      html += `<div style="display:flex;gap:8px;font-size:12px;padding:5px 8px;background:var(--surface2);border-radius:6px">
+        <span style="color:var(--text-dim);white-space:nowrap;flex-shrink:0">${timeStr}</span>
+        <span>${entry.desc}</span>
+      </div>`;
+    });
+    html += '</div>';
+    html += `<button class="btn btn-sm btn-sec" style="margin-top:8px" onclick="clearApiLog()">🗑 Очистить лог</button>`;
+  }
+  html += '</div>';
+
   // Reset
 
   html += `<div class="sec-label">Опасная зона</div>
@@ -1547,6 +1580,12 @@ function lockTournamentPicks() {
   if (pin !== '3220') { alert('Неверный PIN'); return; }
   if (!confirm('Заблокировать выбор команд навсегда? Отменить будет невозможно!')) return;
   data.tournamentPicksLocked = true;
+  saveData(data);
+  renderAdmin();
+}
+
+function clearApiLog() {
+  data.apiLog = [];
   saveData(data);
   renderAdmin();
 }
