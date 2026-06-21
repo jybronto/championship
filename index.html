@@ -413,7 +413,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.49';
+const VERSION = 'v3.50';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -1426,7 +1426,7 @@ function renderAdmin() {
   const log = Array.isArray(data.apiLog) ? data.apiLog : Object.values(data.apiLog || {});
   html += `<details style="margin-bottom:12px">
     <summary style="cursor:pointer;font-size:13px;font-weight:600;color:var(--text-dim);padding:8px 12px;background:var(--surface);border-radius:10px;list-style:none;display:flex;align-items:center;gap:6px">
-      <span>▶</span> Лог обновлений API
+      <span>▶</span> Лог обновлений API: football-data.org
     </summary>
     <div style="margin-top:6px;padding:10px 12px;background:var(--surface);border-radius:10px">`;
   if (!log.length) {
