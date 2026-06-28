@@ -416,7 +416,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.63';
+const VERSION = 'v3.64';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -717,7 +717,7 @@ function calcPoints(pred, result, isPlayoff = false) {
   else if ((pH - pA) === (rH - rA)) pts = 2;
   else if (Math.sign(pH - pA) === Math.sign(rH - rA)) pts = 1;
   if (isPlayoff && result.winner && pred.advancePick && pred.advancePick === result.winner
-      && result.home === result.away && pred.home === pred.away) pts += 2;
+      && result.home === result.away) pts += 2;
   return pts;
 }
 
@@ -894,7 +894,7 @@ function renderBetInputs(match, adminMode) {
   PLAYERS.forEach(p => {
     const pred = data.predictions[`${match.id}_${p}`];
     if (pred) {
-      const apDisplay = isPlayoff && pred.advancePick && pred.home === pred.away
+      const apDisplay = isPlayoff && pred.advancePick
         ? `<div class="cbet-advance-disp">→ ${flag(pred.advancePick)} ${pred.advancePick}</div>`
         : '';
       html += `<div class="cbet-cell">
@@ -975,10 +975,7 @@ function moveBetMatch(dir) {
 }
 
 function updateAdvancePick(matchId, player) {
-  const h = parseInt(document.getElementById(`bh-${matchId}-${player}`)?.value) || 0;
-  const a = parseInt(document.getElementById(`ba-${matchId}-${player}`)?.value) || 0;
-  const apEl = document.getElementById(`ap-${matchId}-${player}`);
-  if (apEl) apEl.style.visibility = (h === a) ? 'visible' : 'hidden';
+  // advance pick always visible for playoff matches — bonus applies on any draw result
 }
 
 function saveBetFor(matchId, player) {
