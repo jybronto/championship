@@ -416,7 +416,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.60';
+const VERSION = 'v3.61';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -1532,9 +1532,6 @@ function renderPlayoff() {
     html += '</div>';
   });
   html += '</div>';
-  html += `<button class="btn btn-sm" style="margin-top:12px;width:100%" onclick="populateR32()">
-    ⚙️ Заполнить 1/16 из таблиц групп
-  </button>`;
   html += '</div>';
 
   // Playoff bracket — read-only results table + auto-fill buttons
