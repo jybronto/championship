@@ -416,7 +416,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.65';
+const VERSION = 'v3.66';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -988,6 +988,7 @@ function saveBetFor(matchId, player) {
   const a = Math.max(0, Math.min(20, parseInt(aEl.value) || 0));
   const apEl = document.getElementById(`ap-${matchId}-${player}`);
   const advancePick = apEl?.value || null;
+  if (m.round && apEl && !advancePick) { alert('Выбери победителя — кто пройдёт дальше'); return; }
   data.predictions[`${matchId}_${player}`] = { home: h, away: a, advancePick, ts: Date.now() };
   saveData(data);
   renderLeaderboard();
@@ -1010,22 +1011,17 @@ function submitAllBets(matchId) {
     return;
   }
 
-  // For playoff matches warn if advance picks are missing
+  // For playoff matches advance pick is mandatory
   const isPlayoffMatch = !!m.round;
   const teamsKnown = isPlayoffMatch && !!TEAMS[m.home] && !!TEAMS[m.away];
   if (teamsKnown) {
     const missingAp = PLAYERS.filter(p => {
       const existing = data.predictions[`${matchId}_${p}`];
-      if (existing) return existing.home === existing.away && !existing.advancePick;
-      const hEl = document.getElementById(`bh-${matchId}-${p}`);
-      const aEl = document.getElementById(`ba-${matchId}-${p}`);
-      const h = parseInt(hEl?.value) || 0;
-      const a = parseInt(aEl?.value) || 0;
-      if (h !== a) return false;
+      if (existing) return !existing.advancePick;
       const apEl = document.getElementById(`ap-${matchId}-${p}`);
-      return !apEl || !apEl.value;
+      return !apEl?.value;
     });
-    if (missingAp.length && !confirm(`${missingAp.join(', ')} поставили ничью но не выбрали кто проходит (+2 очка). Продолжить?`)) return;
+    if (missingAp.length) { alert(`Не выбран победитель у: ${missingAp.join(', ')}`); return; }
   }
 
   // Save newly touched inputs
