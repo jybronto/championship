@@ -416,7 +416,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.59';
+const VERSION = 'v3.60';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -675,6 +675,7 @@ function initFirebase() {
       stateRef.set(data);
     } else {
       data = normalizeData(val);
+      if (autoFillBracket(data)) saveData(data);
     }
 
     if (isFirstLoad) {
@@ -1566,14 +1567,6 @@ function renderPlayoff() {
       </div>`;
     });
 
-    // Auto-fill button for next round
-    const nextRound = nextRoundOf[round];
-    if (nextRound && matches.some(m => m.result?.winner)) {
-      html += `<button class="btn btn-sm" style="margin-top:10px;width:100%" onclick="populateNextRound('${round}')">
-        ⚙️ Заполнить ${nextRoundLabel[round]} из результатов
-      </button>`;
-    }
-
     html += '</div>';
   });
 
@@ -1694,32 +1687,24 @@ function populateR32() {
   alert('Сетка 1/16 заполнена из группового этапа!');
 }
 
-function populateNextRound(fromRound) {
-  const pin = prompt('PIN:');
-  if (pin === null) return;
-  if (pin !== '3220') { alert('Неверный PIN'); return; }
-
-  const matches = data.matches.filter(m => m.round === fromRound);
-  let filled = 0;
-  matches.forEach(m => {
-    const winner = m.result?.winner;
+function autoFillBracket(d) {
+  let changed = false;
+  (d.matches || []).forEach(m => {
+    if (!m.round || !m.result) return;
+    const winner = m.result.winner || (m.result.home !== m.result.away
+      ? (m.result.home > m.result.away ? m.home : m.away) : null);
     if (!winner) return;
     const bn = BRACKET_NEXT[m.id];
     if (!bn) return;
-    const nextM = data.matches.find(x => x.id === bn.next);
-    if (nextM) { nextM[bn.slot] = winner; filled++; }
+    const nextM = d.matches.find(x => x.id === bn.next);
+    if (nextM && nextM[bn.slot] !== winner) { nextM[bn.slot] = winner; changed = true; }
     if (bn.loserNext) {
       const loser = winner === m.home ? m.away : m.home;
-      const loserM = data.matches.find(x => x.id === bn.loserNext);
-      if (loserM) loserM[bn.loserSlot] = loser;
+      const loserM = d.matches.find(x => x.id === bn.loserNext);
+      if (loserM && loserM[bn.loserSlot] !== loser) { loserM[bn.loserSlot] = loser; changed = true; }
     }
   });
-
-  saveData(data);
-  renderPlayoff();
-  if (activeTab === 'admin') renderAdmin();
-  if (activeTab === 'matches') renderMatches();
-  alert(`✅ Заполнено ${filled} слотов`);
+  return changed;
 }
 
 function saveResult(matchId) {
