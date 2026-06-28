@@ -413,7 +413,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.51';
+const VERSION = 'v3.52';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -907,18 +907,19 @@ function renderBetInputs(match, adminMode) {
             <option value="${match.away}">${flag(match.away)} ${match.away}</option>
           </select>`
         : '';
+      // note: visibility toggled by updateAdvancePick() on score input
       html += `<div class="cbet-cell">
         <div class="cbet-name">${p}</div>
         <div class="cbet-inputs">
           <input type="text" inputmode="numeric" pattern="[0-9]*" id="bh-${match.id}-${p}" value="0"
             onfocus="this.dataset.prev=this.value;this.value=''"
             onblur="if(this.value.trim()==='')this.value=this.dataset.prev||'0'"
-            oninput="this.dataset.touched='1'">
+            oninput="this.dataset.touched='1';updateAdvancePick(${match.id},'${p}')">
           <span class="cbet-sep">:</span>
           <input type="text" inputmode="numeric" pattern="[0-9]*" id="ba-${match.id}-${p}" value="0"
             onfocus="this.dataset.prev=this.value;this.value=''"
             onblur="if(this.value.trim()==='')this.value=this.dataset.prev||'0'"
-            oninput="this.dataset.touched='1'">
+            oninput="this.dataset.touched='1';updateAdvancePick(${match.id},'${p}')">
         </div>
         ${apSelect}
         <button class="btn-save-sm" onclick="saveBetFor(${match.id},'${p}')">✓</button>
@@ -969,6 +970,13 @@ function moveBetMatch(dir) {
   renderLeaderboard();
 }
 
+function updateAdvancePick(matchId, player) {
+  const h = parseInt(document.getElementById(`bh-${matchId}-${player}`)?.value) || 0;
+  const a = parseInt(document.getElementById(`ba-${matchId}-${player}`)?.value) || 0;
+  const apEl = document.getElementById(`ap-${matchId}-${player}`);
+  if (apEl) apEl.style.display = (h === a) ? '' : 'none';
+}
+
 function saveBetFor(matchId, player) {
   const m = data.matches.find(x => x.id === matchId);
   if (!m || isLocked(m)) { alert('Матч уже начался! Ставки закрыты.'); return; }
@@ -978,7 +986,7 @@ function saveBetFor(matchId, player) {
   const h = Math.max(0, Math.min(20, parseInt(hEl.value) || 0));
   const a = Math.max(0, Math.min(20, parseInt(aEl.value) || 0));
   const apEl = document.getElementById(`ap-${matchId}-${player}`);
-  const advancePick = apEl ? (apEl.value || null) : null;
+  const advancePick = (apEl && h === a) ? (apEl.value || null) : null;
   data.predictions[`${matchId}_${player}`] = { home: h, away: a, advancePick, ts: Date.now() };
   saveData(data);
   renderLeaderboard();
@@ -1007,11 +1015,16 @@ function submitAllBets(matchId) {
   if (teamsKnown) {
     const missingAp = PLAYERS.filter(p => {
       const existing = data.predictions[`${matchId}_${p}`];
-      if (existing && existing.advancePick) return false;
+      if (existing) return existing.home === existing.away && !existing.advancePick;
+      const hEl = document.getElementById(`bh-${matchId}-${p}`);
+      const aEl = document.getElementById(`ba-${matchId}-${p}`);
+      const h = parseInt(hEl?.value) || 0;
+      const a = parseInt(aEl?.value) || 0;
+      if (h !== a) return false;
       const apEl = document.getElementById(`ap-${matchId}-${p}`);
       return !apEl || !apEl.value;
     });
-    if (missingAp.length && !confirm(`${missingAp.join(', ')} не выбрали кто проходит дальше (+2 очка). Продолжить без этого?`)) return;
+    if (missingAp.length && !confirm(`${missingAp.join(', ')} поставили ничью но не выбрали кто проходит (+2 очка). Продолжить?`)) return;
   }
 
   // Save newly touched inputs
@@ -1022,7 +1035,7 @@ function submitAllBets(matchId) {
     const h = Math.max(0, Math.min(20, parseInt(hEl.value) || 0));
     const a = Math.max(0, Math.min(20, parseInt(aEl.value) || 0));
     const apEl = document.getElementById(`ap-${matchId}-${p}`);
-    const advancePick = apEl ? (apEl.value || null) : null;
+    const advancePick = (apEl && h === a) ? (apEl.value || null) : null;
     data.predictions[`${matchId}_${p}`] = { home: h, away: a, advancePick, ts: Date.now() };
   });
   data.lockedBets[matchId] = true;
