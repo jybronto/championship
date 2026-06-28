@@ -413,7 +413,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.50';
+const VERSION = 'v3.51';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -495,7 +495,7 @@ const GROUP_DATETIMES = {
 // ===================== PLAYOFF BRACKET =====================
 
 const PLAYOFF_ROUNDS = {
-  R32: '1/32 финала', R16: '1/16 финала',
+  R32: '1/16 финала', R16: '1/8 финала',
   QF:  '¼ финала',   SF:  'Полуфинал',
   '3RD': 'Матч за 3-е место', F: 'Финал',
 };
@@ -503,15 +503,22 @@ const PLAYOFF_ROUNDS = {
 // R32 slot descriptions (used for auto-populate from group standings)
 // Keys = match id, values = {home, away} as group-slot strings
 const R32_SLOTS = {
-  73:{home:'1A',away:'2B'}, 74:{home:'1C',away:'2D'},
-  75:{home:'1E',away:'2F'}, 76:{home:'1G',away:'2H'},
-  77:{home:'1I',away:'2J'}, 78:{home:'1K',away:'2L'},
-  79:{home:'1B',away:'2A'}, 80:{home:'1D',away:'2C'},
-  81:{home:'1F',away:'2E'}, 82:{home:'1H',away:'2G'},
-  83:{home:'1J',away:'2I'}, 84:{home:'1L',away:'2K'},
-  // 4 matches with 8 best 3rd-place teams (admin fills manually or via populate)
-  85:{home:'3-й1',away:'3-й2'}, 86:{home:'3-й3',away:'3-й4'},
-  87:{home:'3-й5',away:'3-й6'}, 88:{home:'3-й7',away:'3-й8'},
+  73:{home:'2A', away:'2B'},  // ЮАР vs Канада
+  74:{home:'1C', away:'2F'},  // Бразилия vs Япония
+  75:{home:'1E', away:'3D'},  // Германия vs Парагвай
+  76:{home:'1F', away:'2C'},  // Нидерланды vs Марокко
+  77:{home:'2E', away:'2I'},  // Кот-д'Ивуар vs Норвегия
+  78:{home:'1I', away:'3F'},  // Франция vs Швеция
+  79:{home:'1A', away:'3E'},  // Мексика vs Эквадор
+  80:{home:'1L', away:'3K'},  // Англия vs ДР Конго
+  81:{home:'1G', away:'3I'},  // Бельгия vs Сенегал
+  82:{home:'1D', away:'3B'},  // США vs Босния и Герц.
+  83:{home:'1H', away:'2J'},  // Испания vs Австрия
+  84:{home:'2K', away:'2L'},  // Португалия vs Хорватия
+  85:{home:'1B', away:'3J'},  // Швейцария vs Алжир
+  86:{home:'2D', away:'2G'},  // Австралия vs Египет
+  87:{home:'1J', away:'2H'},  // Аргентина vs Кабо-Верде
+  88:{home:'1K', away:'3L'},  // Колумбия vs Гана
 };
 
 // Winner of matchId → fills slot in next match; SF losers go to 3rd place
@@ -551,24 +558,24 @@ function generateDefaultMatches() {
   }
   // id should be 73 here (12 groups × 6 = 72 group matches)
 
-  // ── Round of 32 (IDs 73–88) ──
+  // ── Round of 32 / 1/16 финала (IDs 73–88) ──
   const r32 = [
-    {home:'1A',away:'2B',date:'2026-07-02T18:00'},
-    {home:'1C',away:'2D',date:'2026-07-02T21:00'},
-    {home:'1E',away:'2F',date:'2026-07-03T18:00'},
-    {home:'1G',away:'2H',date:'2026-07-03T21:00'},
-    {home:'1I',away:'2J',date:'2026-07-04T18:00'},
-    {home:'1K',away:'2L',date:'2026-07-04T21:00'},
-    {home:'1B',away:'2A',date:'2026-07-05T18:00'},
-    {home:'1D',away:'2C',date:'2026-07-05T21:00'},
-    {home:'1F',away:'2E',date:'2026-07-06T18:00'},
-    {home:'1H',away:'2G',date:'2026-07-06T21:00'},
-    {home:'1J',away:'2I',date:'2026-07-07T18:00'},
-    {home:'1L',away:'2K',date:'2026-07-07T21:00'},
-    {home:'3-й №1',away:'3-й №2',date:'2026-07-08T18:00'},
-    {home:'3-й №3',away:'3-й №4',date:'2026-07-08T21:00'},
-    {home:'3-й №5',away:'3-й №6',date:'2026-07-09T18:00'},
-    {home:'3-й №7',away:'3-й №8',date:'2026-07-09T21:00'},
+    {home:'2A', away:'2B', date:'2026-06-28T21:00'}, // ЮАР vs Канада
+    {home:'1C', away:'2F', date:'2026-06-29T18:00'}, // Бразилия vs Япония
+    {home:'1E', away:'3D', date:'2026-06-29T21:00'}, // Германия vs Парагвай
+    {home:'1F', away:'2C', date:'2026-06-29T21:00'}, // Нидерланды vs Марокко
+    {home:'2E', away:'2I', date:'2026-06-30T18:00'}, // Кот-д'Ивуар vs Норвегия
+    {home:'1I', away:'3F', date:'2026-06-30T21:00'}, // Франция vs Швеция
+    {home:'1A', away:'3E', date:'2026-07-01T00:00'}, // Мексика vs Эквадор
+    {home:'1L', away:'3K', date:'2026-07-01T16:00'}, // Англия vs ДР Конго
+    {home:'1G', away:'3I', date:'2026-07-01T20:00'}, // Бельгия vs Сенегал
+    {home:'1D', away:'3B', date:'2026-07-02T00:00'}, // США vs Босния и Герц.
+    {home:'1H', away:'2J', date:'2026-07-02T19:00'}, // Испания vs Австрия
+    {home:'2K', away:'2L', date:'2026-07-02T23:00'}, // Португалия vs Хорватия
+    {home:'1B', away:'3J', date:'2026-07-03T03:00'}, // Швейцария vs Алжир
+    {home:'2D', away:'2G', date:'2026-07-03T18:00'}, // Австралия vs Египет
+    {home:'1J', away:'2H', date:'2026-07-03T22:00'}, // Аргентина vs Кабо-Верде
+    {home:'1K', away:'3L', date:'2026-07-04T01:30'}, // Колумбия vs Гана
   ];
   r32.forEach(m => matches.push({id:id++,round:'R32',home:m.home,away:m.away,date:m.date,result:null}));
 
@@ -1509,7 +1516,7 @@ function renderPlayoff() {
   });
   html += '</div>';
   html += `<button class="btn btn-sm" style="margin-top:12px;width:100%" onclick="populateR32()">
-    ⚙️ Заполнить 1/32 из таблиц групп
+    ⚙️ Заполнить 1/16 из таблиц групп
   </button>`;
   html += '</div>';
 
@@ -1639,33 +1646,21 @@ function populateR32() {
   if (pin === null) return;
   if (pin !== '3220') { alert('Неверный PIN'); return; }
 
-  // Build slot→team map from group standings
+  // Build slot→team map: 1X = winner, 2X = runner-up, 3X = third place of group X
   const slotToTeam = {};
   Object.keys(GROUPS_DEF).forEach(g => {
     const st = calcGroupStandings(g);
     if (st[0]) slotToTeam[`1${g}`] = st[0].team;
     if (st[1]) slotToTeam[`2${g}`] = st[1].team;
+    if (st[2]) slotToTeam[`3${g}`] = st[2].team;
   });
 
-  // Best 8 third-place teams sorted by pts/gd/gf
-  const thirds = Object.keys(GROUPS_DEF)
-    .map(g => calcGroupStandings(g)[2])
-    .filter(Boolean)
-    .sort((a,b) => {
-      if (b.pts !== a.pts) return b.pts - a.pts;
-      const gdDiff = (b.gf - b.ga) - (a.gf - a.ga);
-      if (gdDiff !== 0) return gdDiff;
-      return b.gf - a.gf;
-    })
-    .slice(0, 8);
-  thirds.forEach((t, i) => { slotToTeam[`3-й №${i+1}`] = t.team; });
-
-  // Patch R32 match home/away with actual team names
+  // Patch R32 match home/away — reset to slot name first, then fill with real team
   Object.entries(R32_SLOTS).forEach(([id, slots]) => {
     const m = data.matches.find(x => x.id === parseInt(id));
     if (!m) return;
-    if (slotToTeam[slots.home]) m.home = slotToTeam[slots.home];
-    if (slotToTeam[slots.away]) m.away = slotToTeam[slots.away];
+    m.home = slotToTeam[slots.home] || slots.home;
+    m.away = slotToTeam[slots.away] || slots.away;
   });
 
   saveData(data);
