@@ -977,7 +977,7 @@ function updateAdvancePick(matchId, player) {
   const h = parseInt(document.getElementById(`bh-${matchId}-${player}`)?.value) || 0;
   const a = parseInt(document.getElementById(`ba-${matchId}-${player}`)?.value) || 0;
   const apEl = document.getElementById(`ap-${matchId}-${player}`);
-  if (apEl) apEl.style.display = (h === a) ? '' : 'none';
+  if (apEl) apEl.style.visibility = (h === a) ? 'visible' : 'hidden';
 }
 
 function saveBetFor(matchId, player) {
