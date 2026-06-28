@@ -416,7 +416,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.61';
+const VERSION = 'v3.62';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -894,7 +894,7 @@ function renderBetInputs(match, adminMode) {
   PLAYERS.forEach(p => {
     const pred = data.predictions[`${match.id}_${p}`];
     if (pred) {
-      const apDisplay = isPlayoff && pred.advancePick
+      const apDisplay = isPlayoff && pred.advancePick && pred.home === pred.away
         ? `<div class="cbet-advance-disp">→ ${flag(pred.advancePick)} ${pred.advancePick}</div>`
         : '';
       html += `<div class="cbet-cell">
