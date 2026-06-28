@@ -416,7 +416,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.66';
+const VERSION = 'v3.67';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -1016,10 +1016,9 @@ function submitAllBets(matchId) {
   const teamsKnown = isPlayoffMatch && !!TEAMS[m.home] && !!TEAMS[m.away];
   if (teamsKnown) {
     const missingAp = PLAYERS.filter(p => {
-      const existing = data.predictions[`${matchId}_${p}`];
-      if (existing) return !existing.advancePick;
+      if (data.predictions[`${matchId}_${p}`]) return false; // already saved — don't re-check
       const apEl = document.getElementById(`ap-${matchId}-${p}`);
-      return !apEl?.value;
+      return apEl && !apEl.value;
     });
     if (missingAp.length) { alert(`Не выбран победитель у: ${missingAp.join(', ')}`); return; }
   }
