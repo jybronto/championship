@@ -149,7 +149,7 @@ nav button.act { color: var(--accent); }
 .pred-chip.pts5 .pts-badge { color: #f1c40f; }
 .pred-chip.no-bet { opacity: .45; }
 .cbet-advance-sel { flex:1; min-width:0; background:var(--surface); border:1px solid var(--border); border-radius:8px; color:var(--text); padding:6px 6px; font-size:12px; }
-.cbet-advance-disp { font-size:12px; color:var(--accent); flex:1; text-align:center; }
+.cbet-advance-disp { font-size:12px; color:var(--accent); }
 .locked-badge {
   font-size: 10px; color: var(--red); border: 1px solid var(--red);
   border-radius: 6px; padding: 1px 6px; margin-left: 4px;
@@ -300,7 +300,7 @@ nav button.act { color: var(--accent); }
   font-size: 13px; font-weight: 600; width: 72px; flex-shrink: 0;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.cbet-inputs { display: flex; align-items: center; justify-content: center; gap: 5px; flex: 1; }
+.cbet-inputs { display: flex; align-items: center; justify-content: center; gap: 5px; width: 110px; flex-shrink: 0; }
 .cbet-inputs input {
   width: 42px; height: 42px; text-align: center;
   font-size: 18px; font-weight: 700;
@@ -310,7 +310,8 @@ nav button.act { color: var(--accent); }
 }
 .cbet-inputs input:focus { border-color: var(--accent); outline: none; }
 .cbet-sep { font-size: 16px; color: var(--text-dim); margin: 0 2px; }
-.cbet-done { font-size: 14px; font-weight: 700; color: var(--accent); flex: 1; text-align: center; }
+.cbet-done { font-size: 14px; font-weight: 700; color: var(--accent); width: 110px; flex-shrink: 0; text-align: center; }
+.cbet-mid { flex: 1; min-width: 0; display: flex; align-items: center; }
 .btn-clear-sm {
   background: none; border: 1px solid var(--border); border-radius: 8px;
   padding: 8px 10px; color: var(--text-dim); font-size: 14px; cursor: pointer; flex-shrink: 0;
@@ -415,7 +416,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.58';
+const VERSION = 'v3.59';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -898,7 +899,7 @@ function renderBetInputs(match, adminMode) {
       html += `<div class="cbet-cell">
         <div class="cbet-name">${p}</div>
         <div class="cbet-done">${betLocked ? '🔒' : '✅'} ${pred.home} : ${pred.away}</div>
-        ${apDisplay}
+        <div class="cbet-mid">${apDisplay}</div>
         ${!betLocked ? `<button class="btn-clear-sm" onclick="clearBetFor(${match.id},'${p}')">✕</button>` : ''}
       </div>`;
     } else if (!betLocked) {
@@ -923,7 +924,7 @@ function renderBetInputs(match, adminMode) {
             onblur="if(this.value.trim()==='')this.value=this.dataset.prev||'0'"
             oninput="this.dataset.touched='1';updateAdvancePick(${match.id},'${p}')">
         </div>
-        ${apSelect}
+        <div class="cbet-mid">${apSelect}</div>
         <button class="btn-save-sm" onclick="saveBetFor(${match.id},'${p}')">✓</button>
       </div>`;
     } else {
