@@ -413,7 +413,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.52';
+const VERSION = 'v3.53';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -902,7 +902,7 @@ function renderBetInputs(match, adminMode) {
     } else if (!betLocked) {
       const apSelect = teamsKnown
         ? `<select id="ap-${match.id}-${p}" class="cbet-advance-sel">
-            <option value="">— кто проходит —</option>
+            <option value="">— победитель —</option>
             <option value="${match.home}">${flag(match.home)} ${match.home}</option>
             <option value="${match.away}">${flag(match.away)} ${match.away}</option>
           </select>`
