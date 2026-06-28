@@ -413,7 +413,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.54';
+const VERSION = 'v3.55';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -1533,36 +1533,44 @@ function renderPlayoff() {
   </button>`;
   html += '</div>';
 
-  // Playoff match team editor — grouped by round
+  // Playoff bracket — read-only results table + auto-fill buttons
   html += '<div class="sec-label">Сетка плей-офф</div>';
   const roundOrder = ['R32','R16','QF','SF','3RD','F'];
+  const nextRoundOf = { R32:'R16', R16:'QF', QF:'SF', SF:'F' };
+  const nextRoundLabel = { R32:'1/8 финала', R16:'¼ финала', QF:'Полуфиналы', SF:'Финал' };
+
   roundOrder.forEach(round => {
     const matches = data.matches
       .filter(m => m.round === round)
       .sort((a,b) => new Date(a.date) - new Date(b.date));
     if (!matches.length) return;
+
     html += `<div class="admin-section">
       <div class="admin-section-title">${PLAYOFF_ROUNDS[round] || round}</div>`;
+
     matches.forEach(m => {
       const hasResult = !!m.result;
-      html += `<div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--border)">
-        <div style="font-size:10px;color:var(--text-dim);margin-bottom:5px">${fmtDate(m.date)}</div>
-        <div style="display:flex;gap:6px;align-items:center;min-width:0">
-          <input type="text" id="ph-${m.id}" value="${m.home}" placeholder="Команда 1"
-            list="teams-list" autocomplete="off"
-            onfocus="this.dataset.prev=this.value;this.value=''"
-            onblur="if(!this.value.trim())this.value=this.dataset.prev"
-            style="flex:1;min-width:0;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:6px 8px;font-size:12px">
-          <span style="color:var(--text-dim);font-size:12px;flex-shrink:0">${hasResult ? `<strong>${m.result.home} : ${m.result.away}</strong>` : '—'}</span>
-          <input type="text" id="pa-${m.id}" value="${m.away}" placeholder="Команда 2"
-            list="teams-list" autocomplete="off"
-            onfocus="this.dataset.prev=this.value;this.value=''"
-            onblur="if(!this.value.trim())this.value=this.dataset.prev"
-            style="flex:1;min-width:0;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:6px 8px;font-size:12px">
-          <button class="btn btn-sm" onclick="savePlayoffTeams(${m.id})" style="flex-shrink:0">💾</button>
-        </div>
+      const winner = m.result?.winner;
+      const homeWon = winner === m.home;
+      const awayWon = winner === m.away;
+      const scoreHtml = hasResult
+        ? `<span style="font-weight:800;font-size:15px">${m.result.home}:${m.result.away}</span>`
+        : `<span style="color:var(--text-dim)">—:—</span>`;
+      html += `<div style="display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
+        <span style="flex:1;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${homeWon?'font-weight:700;color:var(--text)':'color:var(--text-dim)'}">${flag(m.home)} ${m.home}</span>
+        <span style="flex-shrink:0;min-width:42px;text-align:center">${scoreHtml}</span>
+        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${awayWon?'font-weight:700;color:var(--text)':'color:var(--text-dim)'}">${m.away} ${flag(m.away)}</span>
       </div>`;
     });
+
+    // Auto-fill button for next round
+    const nextRound = nextRoundOf[round];
+    if (nextRound && matches.some(m => m.result?.winner)) {
+      html += `<button class="btn btn-sm" style="margin-top:10px;width:100%" onclick="populateNextRound('${round}')">
+        ⚙️ Заполнить ${nextRoundLabel[round]} из результатов
+      </button>`;
+    }
+
     html += '</div>';
   });
 
@@ -1680,7 +1688,35 @@ function populateR32() {
   if (activeTab === 'playoff') renderPlayoff();
   if (activeTab === 'admin') renderAdmin();
   if (activeTab === 'matches') renderMatches();
-  alert('Сетка 1/32 заполнена из группового этапа!');
+  alert('Сетка 1/16 заполнена из группового этапа!');
+}
+
+function populateNextRound(fromRound) {
+  const pin = prompt('PIN:');
+  if (pin === null) return;
+  if (pin !== '3220') { alert('Неверный PIN'); return; }
+
+  const matches = data.matches.filter(m => m.round === fromRound);
+  let filled = 0;
+  matches.forEach(m => {
+    const winner = m.result?.winner;
+    if (!winner) return;
+    const bn = BRACKET_NEXT[m.id];
+    if (!bn) return;
+    const nextM = data.matches.find(x => x.id === bn.next);
+    if (nextM) { nextM[bn.slot] = winner; filled++; }
+    if (bn.loserNext) {
+      const loser = winner === m.home ? m.away : m.home;
+      const loserM = data.matches.find(x => x.id === bn.loserNext);
+      if (loserM) loserM[bn.loserSlot] = loser;
+    }
+  });
+
+  saveData(data);
+  renderPlayoff();
+  if (activeTab === 'admin') renderAdmin();
+  if (activeTab === 'matches') renderMatches();
+  alert(`✅ Заполнено ${filled} слотов`);
 }
 
 function saveResult(matchId) {
