@@ -416,7 +416,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.64';
+const VERSION = 'v3.65';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -987,7 +987,7 @@ function saveBetFor(matchId, player) {
   const h = Math.max(0, Math.min(20, parseInt(hEl.value) || 0));
   const a = Math.max(0, Math.min(20, parseInt(aEl.value) || 0));
   const apEl = document.getElementById(`ap-${matchId}-${player}`);
-  const advancePick = (apEl && h === a) ? (apEl.value || null) : null;
+  const advancePick = apEl?.value || null;
   data.predictions[`${matchId}_${player}`] = { home: h, away: a, advancePick, ts: Date.now() };
   saveData(data);
   renderLeaderboard();
@@ -1036,7 +1036,7 @@ function submitAllBets(matchId) {
     const h = Math.max(0, Math.min(20, parseInt(hEl.value) || 0));
     const a = Math.max(0, Math.min(20, parseInt(aEl.value) || 0));
     const apEl = document.getElementById(`ap-${matchId}-${p}`);
-    const advancePick = (apEl && h === a) ? (apEl.value || null) : null;
+    const advancePick = apEl?.value || null;
     data.predictions[`${matchId}_${p}`] = { home: h, away: a, advancePick, ts: Date.now() };
   });
   data.lockedBets[matchId] = true;
