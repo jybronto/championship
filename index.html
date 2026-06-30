@@ -416,7 +416,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.69';
+const VERSION = 'v3.70';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -1284,7 +1284,7 @@ function renderMatchCard(m) {
 
   const manualBadge = m.result?.manual ? ' <span style="font-size:11px;opacity:0.7">✏️</span>' : '';
   const centerHtml = m.result
-    ? `<div class="match-result-score">${m.result.home} : ${m.result.away}${m.result.penHome != null ? `<span style="font-size:13px;color:var(--text-dim)"> (пен. ${m.result.penHome}:${m.result.penAway})</span>` : ''}${manualBadge}</div>`
+    ? `<div class="match-result-score">${m.result.home}${m.result.penHome != null ? `<span style="font-size:16px;color:var(--text-dim)">(${m.result.penHome})</span>` : ''} : ${m.result.away}${m.result.penAway != null ? `<span style="font-size:16px;color:var(--text-dim)">(${m.result.penAway})</span>` : ''}${manualBadge}</div>`
     : `<div class="match-result-score" style="color:var(--text-dim)">— : —</div>`;
 
   const editBtn = m.result
