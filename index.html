@@ -416,7 +416,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.68';
+const VERSION = 'v3.69';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -1160,14 +1160,25 @@ async function fetchAndUpdateResults() {
         return;
       }
 
+      // Penalty scores (only for draws)
+      let penHome = null, penAway = null;
+      if (scoreHome === scoreAway && apiM.score?.penalties?.home != null) {
+        const pH = apiM.score.penalties.home;
+        const pA = apiM.score.penalties.away;
+        penHome = swapped ? pA : pH;
+        penAway = swapped ? pH : pA;
+      }
+
       // Skip if nothing changed
-      if (ex && ex.home === scoreHome && ex.away === scoreAway && ex.winner === (winner || undefined)) return;
+      if (ex && ex.home === scoreHome && ex.away === scoreAway && ex.winner === (winner || undefined)
+          && ex.penHome === (penHome ?? undefined)) return;
 
       const prevScore = ex ? `${ex.home}:${ex.away}` : 'нет';
       local.result = { home: scoreHome, away: scoreAway };
       if (winner) local.result.winner = winner;
+      if (penHome != null) { local.result.penHome = penHome; local.result.penAway = penAway; }
       updated++;
-      pushApiLog(data, `⚽ Результат: ${local.home} ${scoreHome}:${scoreAway} ${local.away}${ex ? ` (было ${prevScore})` : ''}`);
+      pushApiLog(data, `⚽ Результат: ${local.home} ${scoreHome}:${scoreAway}${penHome!=null?` (пен. ${penHome}:${penAway})`:''} ${local.away}${ex ? ` (было ${prevScore})` : ''}`);
 
       // Auto-advance bracket for playoff
       if (local.round && BRACKET_NEXT[local.id] && winner) {
@@ -1273,7 +1284,7 @@ function renderMatchCard(m) {
 
   const manualBadge = m.result?.manual ? ' <span style="font-size:11px;opacity:0.7">✏️</span>' : '';
   const centerHtml = m.result
-    ? `<div class="match-result-score">${m.result.home} : ${m.result.away}${manualBadge}</div>`
+    ? `<div class="match-result-score">${m.result.home} : ${m.result.away}${m.result.penHome != null ? `<span style="font-size:13px;color:var(--text-dim)"> (пен. ${m.result.penHome}:${m.result.penAway})</span>` : ''}${manualBadge}</div>`
     : `<div class="match-result-score" style="color:var(--text-dim)">— : —</div>`;
 
   const editBtn = m.result
@@ -1546,8 +1557,9 @@ function renderPlayoff() {
       const winner = m.result?.winner;
       const homeWon = winner === m.home;
       const awayWon = winner === m.away;
+      const penStr = hasResult && m.result.penHome != null ? ` (п. ${m.result.penHome}:${m.result.penAway})` : '';
       const scoreHtml = hasResult
-        ? `<span style="font-weight:800;font-size:15px">${m.result.home}:${m.result.away}</span>`
+        ? `<span style="font-weight:800;font-size:15px">${m.result.home}:${m.result.away}</span><span style="font-size:11px;color:var(--text-dim)">${penStr}</span>`
         : `<span style="color:var(--text-dim)">—:—</span>`;
       html += `<div style="display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
         <span style="flex:1;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${homeWon?'font-weight:700;color:var(--text)':'color:var(--text-dim)'}">${flag(m.home)} ${m.home}</span>
@@ -1585,9 +1597,15 @@ function editResult(matchId) {
   if (m.round && hNum !== aNum) {
     m.result.winner = hNum > aNum ? m.home : m.away;
   } else if (m.round && hNum === aNum) {
-    const w = prompt(`Ничья в 90 мин. Кто прошёл?\n1 — ${m.home}\n2 — ${m.away}`);
-    if (w === '1') m.result.winner = m.home;
-    else if (w === '2') m.result.winner = m.away;
+    const pen = prompt(`Ничья в 90 мин. Счёт по пенальти (например 3:4):`);
+    if (pen && pen.includes(':')) {
+      const [ph, pa] = pen.split(':').map(x => parseInt(x.trim()));
+      if (!isNaN(ph) && !isNaN(pa)) {
+        m.result.penHome = ph;
+        m.result.penAway = pa;
+        m.result.winner = ph > pa ? m.home : m.away;
+      }
+    }
   }
   autoFillBracket(data);
   saveData(data);
