@@ -416,7 +416,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.71';
+const VERSION = 'v3.72';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -1150,8 +1150,15 @@ async function fetchAndUpdateResults() {
 
       const ex = local.result;
 
-      // Protect manual corrections — API can never overwrite (clear via ✏️ only)
-      if (ex?.manual) return;
+      // Protect manual corrections — clear only when API agrees with manual score
+      if (ex?.manual) {
+        if (ex.home === scoreHome && ex.away === scoreAway) {
+          delete ex.manual;
+          confirmed++;
+          pushApiLog(data, `✅ Подтверждено: ${local.home} ${scoreHome}:${scoreAway} ${local.away} (✏️→API)`);
+        }
+        return;
+      }
 
       // Penalty scores (only for draws)
       let penHome = null, penAway = null;
