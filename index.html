@@ -416,7 +416,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.67';
+const VERSION = 'v3.68';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -1575,14 +1575,21 @@ function editResult(matchId) {
   if (pin !== '3220') { alert('Неверный PIN'); return; }
   const m = data.matches.find(x => x.id === matchId);
   if (!m || !m.result) return;
-  const h = prompt(`Хозяева (сейчас: ${m.result.home}):`, m.result.home);
+  const h = prompt(`Счёт за 90 мин — ${m.home}:`, m.result.home);
   if (h === null) return;
-  const a = prompt(`Гости (сейчас: ${m.result.away}):`, m.result.away);
+  const a = prompt(`Счёт за 90 мин — ${m.away}:`, m.result.away);
   if (a === null) return;
   const hNum = parseInt(h), aNum = parseInt(a);
   if (isNaN(hNum) || isNaN(aNum)) { alert('Введи число'); return; }
   m.result = { home: hNum, away: aNum, manual: true };
-  if (m.round && hNum !== aNum) m.result.winner = hNum > aNum ? m.home : m.away;
+  if (m.round && hNum !== aNum) {
+    m.result.winner = hNum > aNum ? m.home : m.away;
+  } else if (m.round && hNum === aNum) {
+    const w = prompt(`Ничья в 90 мин. Кто прошёл?\n1 — ${m.home}\n2 — ${m.away}`);
+    if (w === '1') m.result.winner = m.home;
+    else if (w === '2') m.result.winner = m.away;
+  }
+  autoFillBracket(data);
   saveData(data);
   renderMatches();
   renderLeaderboard();
