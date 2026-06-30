@@ -416,7 +416,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.72';
+const VERSION = 'v3.73';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -1126,8 +1126,13 @@ async function fetchAndUpdateResults() {
         pushApiLog(data, `🕐 Время: ${local.home} vs ${local.away} → ${fmtDate(apiM.utcDate)}`);
       }
 
-      const h90 = apiM.score?.fullTime?.home;
-      const a90 = apiM.score?.fullTime?.away;
+      // For PENALTY_SHOOTOUT matches some APIs add shootout goals to fullTime — use regularTime instead
+      const isPenMatch = apiM.score?.duration === 'PENALTY_SHOOTOUT';
+      const scoreObj = isPenMatch && apiM.score?.regularTime?.home != null
+        ? apiM.score.regularTime
+        : apiM.score?.fullTime;
+      const h90 = scoreObj?.home;
+      const a90 = scoreObj?.away;
       if (h90 === null || h90 === undefined || a90 === null || a90 === undefined) return;
 
       // Apply score in local home/away order
