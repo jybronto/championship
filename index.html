@@ -416,7 +416,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.70';
+const VERSION = 'v3.71';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -1150,15 +1150,8 @@ async function fetchAndUpdateResults() {
 
       const ex = local.result;
 
-      // Protect manual corrections — API cannot overwrite
-      if (ex?.manual) {
-        if (ex.home === scoreHome && ex.away === scoreAway) {
-          delete ex.manual;
-          confirmed++;
-          pushApiLog(data, `✅ Подтверждено: ${local.home} ${scoreHome}:${scoreAway} ${local.away} (✏️→API)`);
-        }
-        return;
-      }
+      // Protect manual corrections — API can never overwrite (clear via ✏️ only)
+      if (ex?.manual) return;
 
       // Penalty scores (only for draws)
       let penHome = null, penAway = null;
@@ -1169,9 +1162,15 @@ async function fetchAndUpdateResults() {
         penAway = swapped ? pH : pA;
       }
 
-      // Skip if nothing changed
-      if (ex && ex.home === scoreHome && ex.away === scoreAway && ex.winner === (winner || undefined)
-          && ex.penHome === (penHome ?? undefined)) return;
+      // If base score + winner unchanged, only update penalty data if new
+      if (ex && ex.home === scoreHome && ex.away === scoreAway && ex.winner === (winner || undefined)) {
+        if (penHome != null && ex.penHome !== penHome) {
+          ex.penHome = penHome; ex.penAway = penAway;
+          updated++;
+          pushApiLog(data, `⚽ Пенальти: ${local.home} (${penHome}) — ${local.away} (${penAway})`);
+        }
+        return;
+      }
 
       const prevScore = ex ? `${ex.home}:${ex.away}` : 'нет';
       local.result = { home: scoreHome, away: scoreAway };
