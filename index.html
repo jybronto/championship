@@ -435,7 +435,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.79';
+const VERSION = 'v3.78';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -1155,12 +1155,6 @@ async function fetchAndUpdateResults() {
       const h90 = scoreObj?.home;
       const a90 = scoreObj?.away;
       if (h90 === null || h90 === undefined || a90 === null || a90 === undefined) return;
-
-      // Temporary debug: log raw API data for all finished matches
-      if (apiM.status === 'FINISHED') {
-        const sc = apiM.score;
-        pushApiLog(data, `🔍 ${local.home} vs ${local.away}: dur=${sc?.duration} ft=${sc?.fullTime?.home}:${sc?.fullTime?.away} reg=${sc?.regularTime?.home ?? '—'}:${sc?.regularTime?.away ?? '—'} pen=${sc?.penalties?.home ?? '—'} w=${sc?.winner}`);
-      }
 
       // Apply score in local home/away order
       const swapped = local.home === apiAway;
