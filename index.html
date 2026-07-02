@@ -435,7 +435,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.77';
+const VERSION = 'v3.78';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -1145,9 +1145,11 @@ async function fetchAndUpdateResults() {
         pushApiLog(data, `🕐 Время: ${local.home} vs ${local.away} → ${fmtDate(apiM.utcDate)}`);
       }
 
-      // For PENALTY_SHOOTOUT matches some APIs add shootout goals to fullTime — use regularTime instead
+      // For ET/penalty matches fullTime includes extra-time goals — use regularTime (90-min) for scoring
       const isPenMatch = apiM.score?.duration === 'PENALTY_SHOOTOUT';
-      const scoreObj = isPenMatch && apiM.score?.regularTime?.home != null
+      const isETMatch  = apiM.score?.duration === 'EXTRA_TIME';
+      const isExtended = isPenMatch || isETMatch;
+      const scoreObj = isExtended && apiM.score?.regularTime?.home != null
         ? apiM.score.regularTime
         : apiM.score?.fullTime;
       const h90 = scoreObj?.home;
@@ -1183,6 +1185,15 @@ async function fetchAndUpdateResults() {
         penAway = swapped ? pH : pA;
       }
 
+      // ET final score for display only (not used in points calc)
+      let etHome = null, etAway = null;
+      if (isETMatch && apiM.score?.fullTime?.home != null) {
+        const ftH = apiM.score.fullTime.home;
+        const ftA = apiM.score.fullTime.away;
+        etHome = swapped ? ftA : ftH;
+        etAway = swapped ? ftH : ftA;
+      }
+
       // Protect manual corrections — only clear when API agrees with BOTH score AND penalties
       if (ex?.manual) {
         const scoreOk = ex.home === scoreHome && ex.away === scoreAway;
@@ -1196,13 +1207,18 @@ async function fetchAndUpdateResults() {
         return;
       }
 
-      // If base score + winner unchanged, only update penalty data if new
+      // If base score + winner unchanged, only update supplementary data if new
       if (ex && ex.home === scoreHome && ex.away === scoreAway && ex.winner === (winner || undefined)) {
+        let supplemented = false;
         if (penHome != null && ex.penHome !== penHome) {
-          ex.penHome = penHome; ex.penAway = penAway;
-          updated++;
+          ex.penHome = penHome; ex.penAway = penAway; supplemented = true;
           pushApiLog(data, `⚽ Пенальти: ${local.home} (${penHome}) — ${local.away} (${penAway})`);
         }
+        if (etHome != null && ex.etHome !== etHome) {
+          ex.etHome = etHome; ex.etAway = etAway; supplemented = true;
+          pushApiLog(data, `⏱ ДВ: ${local.home} ${etHome}:${etAway} ${local.away}`);
+        }
+        if (supplemented) updated++;
         return;
       }
 
@@ -1210,6 +1226,7 @@ async function fetchAndUpdateResults() {
       local.result = { home: scoreHome, away: scoreAway };
       if (winner) local.result.winner = winner;
       if (penHome != null) { local.result.penHome = penHome; local.result.penAway = penAway; }
+      if (etHome != null) { local.result.etHome = etHome; local.result.etAway = etAway; }
       updated++;
       pushApiLog(data, `⚽ Результат: ${local.home} ${scoreHome}:${scoreAway}${penHome!=null?` (пен. ${penHome}:${penAway})`:''} ${local.away}${ex ? ` (было ${prevScore})` : ''}`);
 
@@ -1316,8 +1333,11 @@ function renderMatchCard(m) {
     background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text)`;
 
   const manualBadge = m.result?.manual ? ' <span style="font-size:11px;opacity:0.7">✏️</span>' : '';
+  const etBadge = m.result?.etHome != null
+    ? `<div style="font-size:11px;color:var(--text-dim);text-align:center;margin-top:1px">ДВ ${m.result.etHome}:${m.result.etAway}</div>`
+    : '';
   const centerHtml = m.result
-    ? `<div class="match-result-score">${m.result.home}${m.result.penHome != null ? `<span style="font-size:16px;color:var(--text-dim)">(${m.result.penHome})</span>` : ''} : ${m.result.away}${m.result.penAway != null ? `<span style="font-size:16px;color:var(--text-dim)">(${m.result.penAway})</span>` : ''}${manualBadge}</div>`
+    ? `<div>${'<div class="match-result-score">' + m.result.home}${m.result.penHome != null ? `<span style="font-size:16px;color:var(--text-dim)">(${m.result.penHome})</span>` : ''} : ${m.result.away}${m.result.penAway != null ? `<span style="font-size:16px;color:var(--text-dim)">(${m.result.penAway})</span>` : ''}${manualBadge}</div>${etBadge}</div>`
     : `<div class="match-result-score" style="color:var(--text-dim)">— : —</div>`;
 
   const editBtn = m.result
