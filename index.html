@@ -410,6 +410,15 @@ nav button.act { color: var(--accent); }
   <div style="color:var(--accent);font-size:16px;font-weight:600">Загрузка...</div>
 </div>
 
+<!-- Debug console (tap version badge 5× to open) -->
+<div id="dbg-panel" style="display:none;position:fixed;inset:0;background:#000d;z-index:2000;flex-direction:column;padding:12px;gap:8px">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <span style="color:#0f0;font-family:monospace;font-size:13px;font-weight:700">Лог</span>
+    <button onclick="document.getElementById('dbg-panel').style.display='none'" style="background:#333;color:#fff;border:none;padding:4px 10px;border-radius:6px;font-size:13px">✕</button>
+  </div>
+  <div id="dbg-log" style="overflow-y:auto;flex:1;font-family:monospace;font-size:11px;color:#cfc;white-space:pre-wrap;word-break:break-all"></div>
+</div>
+
 <header>
   <div class="header-title">⚽ ЧМ 2026</div>
   <div id="version-badge" style="font-size:11px;color:var(--text-dim);font-family:monospace"></div>
@@ -433,9 +442,47 @@ nav button.act { color: var(--accent); }
 
 
 <script>
+// ===================== DEBUG =====================
+(function() {
+  const dbgLog = [];
+  let tapCount = 0, tapTimer = null;
+  function addLog(type, args) {
+    const line = '[' + type + '] ' + Array.from(args).map(a => {
+      try { return typeof a === 'object' ? JSON.stringify(a) : String(a); } catch(e) { return String(a); }
+    }).join(' ');
+    dbgLog.push(line);
+    if (dbgLog.length > 200) dbgLog.shift();
+    const el = document.getElementById('dbg-log');
+    if (el) { el.textContent = dbgLog.join('\n'); el.scrollTop = el.scrollHeight; }
+  }
+  const _log = console.log, _warn = console.warn, _error = console.error;
+  console.log   = function() { _log.apply(console,arguments);   addLog('LOG',  arguments); };
+  console.warn  = function() { _warn.apply(console,arguments);  addLog('WARN', arguments); };
+  console.error = function() { _error.apply(console,arguments); addLog('ERR',  arguments); };
+  window.onerror = function(msg,src,line,col,err) {
+    addLog('CRASH', [msg, src+':'+line]);
+    document.getElementById('loader') && (document.getElementById('loader').style.display='none');
+    return false;
+  };
+  window.onunhandledrejection = function(e) { addLog('PROMISE', [e.reason]); };
+  // Tap version badge 5× to open debug panel
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('#version-badge')) return;
+    tapCount++;
+    clearTimeout(tapTimer);
+    if (tapCount >= 5) { tapCount = 0; const p = document.getElementById('dbg-panel'); if(p){p.style.display='flex'; const el=document.getElementById('dbg-log'); if(el){el.textContent=dbgLog.join('\n'); el.scrollTop=el.scrollHeight;}} }
+    tapTimer = setTimeout(() => tapCount = 0, 1500);
+  });
+  // Fallback: force-hide loader after 8s
+  setTimeout(function() {
+    const l = document.getElementById('loader');
+    if (l && l.style.display !== 'none') { addLog('WARN',['loader timeout — force hide']); l.style.display='none'; }
+  }, 8000);
+})();
+
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.80';
+const VERSION = 'v3.81';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
