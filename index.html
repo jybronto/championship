@@ -435,7 +435,7 @@ nav button.act { color: var(--accent); }
 <script>
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.79';
+const VERSION = 'v3.80';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -674,7 +674,7 @@ function normalizeData(val) {
   if (!val.bracketMigrated_v2) {
     const r16ids = [89,90,91,92,93,94,95,96];
     (val.matches || []).forEach(m => {
-      if (r16ids.includes(m.id)) { m.home = 'ТБД'; m.away = 'ТБД'; }
+      if (m && r16ids.includes(m.id)) { m.home = 'ТБД'; m.away = 'ТБД'; }
     });
     val.bracketMigrated_v2 = true;
   }
@@ -697,13 +697,18 @@ function initFirebase() {
   stateRef = firebase.database().ref('wc2026');
 
   stateRef.on('value', snapshot => {
-    const val = snapshot.val();
-    if (!val) {
-      data = buildDefaultData();
-      stateRef.set(data);
-    } else {
-      data = normalizeData(val);
-      if (autoFillBracket(data)) saveData(data);
+    try {
+      const val = snapshot.val();
+      if (!val) {
+        data = buildDefaultData();
+        stateRef.set(data);
+      } else {
+        data = normalizeData(val);
+        if (autoFillBracket(data)) saveData(data);
+      }
+    } catch(e) {
+      console.error('normalizeData/autoFill error:', e);
+      data = data || buildDefaultData();
     }
 
     if (isFirstLoad) {
