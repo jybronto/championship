@@ -483,7 +483,7 @@ nav button.act { color: var(--accent); }
 
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.84';
+const VERSION = 'v3.85';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -720,7 +720,7 @@ function normalizeData(val) {
   }
 
   // Migration: reset R16 team slots so corrected BRACKET_NEXT mapping can repopulate them
-  console.log('normalizeData: bracketMigrated_v2='+val.bracketMigrated_v2+' matches.length='+((val.matches||[]).length));
+
   if (!val.bracketMigrated_v2) {
     const r16ids = [89,90,91,92,93,94,95,96];
     (val.matches || []).forEach(m => {
@@ -749,7 +749,6 @@ function initFirebase() {
   stateRef.on('value', snapshot => {
     const wasSelf = isSavingLocally;
     isSavingLocally = false;
-    console.log('Firebase value event, wasSelf='+wasSelf+', isFirstLoad='+isFirstLoad);
     try {
       const val = snapshot.val();
       if (!val) {
@@ -758,7 +757,6 @@ function initFirebase() {
         stateRef.set(data);
       } else {
         data = normalizeData(val);
-        if (autoFillBracket(data)) saveData(data);
       }
     } catch(e) {
       console.error('normalizeData/autoFill error:', e);
@@ -767,6 +765,7 @@ function initFirebase() {
 
     if (isFirstLoad) {
       isFirstLoad = false;
+      if (autoFillBracket(data)) saveData(data);
       hideLoader();
       renderLeaderboard();
     } else if (!wasSelf) {
@@ -785,7 +784,6 @@ function saveData(d) {
   data = d;
   if (stateRef) {
     isSavingLocally = true;
-    console.log('saveData → Firebase', new Error().stack.split('\n')[2]?.trim());
     stateRef.set(d);
   } else {
     localStorage.setItem('wc2026', JSON.stringify(d));
@@ -880,7 +878,6 @@ function switchTab(tab, btn) {
 }
 
 function renderTab(tab) {
-  console.log('renderTab:', tab, new Error().stack.split('\n')[2]?.trim());
   if (tab === 'lb') renderLeaderboard();
   else if (tab === 'matches') renderMatches();
   else if (tab === 'bets') renderBets();
@@ -1883,7 +1880,6 @@ function autoFillBracket(d) {
     if (!bn) return;
     const nextM = d.matches.find(x => x.id === bn.next);
     if (nextM && nextM[bn.slot] !== winner) {
-      console.log('autoFill change: R32#'+m.id+'→R'+bn.next+' '+bn.slot+': "'+nextM[bn.slot]+'" → "'+winner+'"');
       nextM[bn.slot] = winner; changed = true;
     }
     if (bn.loserNext) {
