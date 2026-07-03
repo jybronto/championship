@@ -483,7 +483,7 @@ nav button.act { color: var(--accent); }
 
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.85';
+const VERSION = 'v3.86';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -757,6 +757,9 @@ function initFirebase() {
         stateRef.set(data);
       } else {
         data = normalizeData(val);
+        // Derive the playoff bracket in-memory for display. NEVER persisted from
+        // here — persisting would re-trigger this handler and loop forever.
+        autoFillBracket(data);
       }
     } catch(e) {
       console.error('normalizeData/autoFill error:', e);
@@ -765,7 +768,6 @@ function initFirebase() {
 
     if (isFirstLoad) {
       isFirstLoad = false;
-      if (autoFillBracket(data)) saveData(data);
       hideLoader();
       renderLeaderboard();
     } else if (!wasSelf) {
@@ -1638,6 +1640,7 @@ function renderAdmin() {
 // ===================== RENDER PLAYOFF =====================
 
 function renderPlayoff() {
+  autoFillBracket(data); // recompute derived bracket slots in-memory (no save)
   // Autocomplete: all real teams, prefixed by group position for quick lookup
   const teamOptions = new Set(Object.keys(TEAMS));
   // Also include teams already in playoff slots
@@ -1869,25 +1872,40 @@ function populateR32() {
   alert('Сетка 1/16 заполнена из группового этапа!');
 }
 
+// Recomputes every derived bracket slot (Round of 16 → Final, ids ≥ 89) from
+// the results of the feeding matches. Purely in-memory: it NEVER calls saveData,
+// so it can be run on every render without risking a Firebase write loop.
+// Self-healing: derived slots are reset to 'ТБД' first, then re-filled, so any
+// stale/wrong team names left over in the database are cleaned up on the fly.
 function autoFillBracket(d) {
+  const matches = d.matches || [];
+  const byId = id => matches.find(x => x.id === id);
   let changed = false;
-  (d.matches || []).forEach(m => {
-    if (!m.round || !m.result) return;
+  const setSlot = (m, slot, val) => {
+    if (m && m[slot] !== val) { m[slot] = val; changed = true; }
+  };
+
+  // 1) Reset all derived slots (ids ≥ 89) to ТБД.
+  matches.forEach(m => {
+    if (m && m.round && m.id >= 89) { setSlot(m, 'home', 'ТБД'); setSlot(m, 'away', 'ТБД'); }
+  });
+
+  // 2) Forward pass in id order (sources always precede their targets) so that a
+  //    round's freshly-filled team names are available when deriving the next round.
+  matches.slice().sort((a, b) => a.id - b.id).forEach(m => {
+    if (!m || !m.round || !m.result) return;
     const winner = m.result.winner || (m.result.home !== m.result.away
       ? (m.result.home > m.result.away ? m.home : m.away) : null);
-    if (!winner) return;
+    if (!winner || winner === 'ТБД') return;
     const bn = BRACKET_NEXT[m.id];
     if (!bn) return;
-    const nextM = d.matches.find(x => x.id === bn.next);
-    if (nextM && nextM[bn.slot] !== winner) {
-      nextM[bn.slot] = winner; changed = true;
-    }
+    setSlot(byId(bn.next), bn.slot, winner);
     if (bn.loserNext) {
       const loser = winner === m.home ? m.away : m.home;
-      const loserM = d.matches.find(x => x.id === bn.loserNext);
-      if (loserM && loserM[bn.loserSlot] !== loser) { loserM[bn.loserSlot] = loser; changed = true; }
+      if (loser && loser !== 'ТБД') setSlot(byId(bn.loserNext), bn.loserSlot, loser);
     }
   });
+
   return changed;
 }
 
