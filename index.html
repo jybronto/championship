@@ -483,7 +483,7 @@ nav button.act { color: var(--accent); }
 
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.83';
+const VERSION = 'v3.84';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -720,6 +720,7 @@ function normalizeData(val) {
   }
 
   // Migration: reset R16 team slots so corrected BRACKET_NEXT mapping can repopulate them
+  console.log('normalizeData: bracketMigrated_v2='+val.bracketMigrated_v2+' matches.length='+((val.matches||[]).length));
   if (!val.bracketMigrated_v2) {
     const r16ids = [89,90,91,92,93,94,95,96];
     (val.matches || []).forEach(m => {
@@ -1881,7 +1882,10 @@ function autoFillBracket(d) {
     const bn = BRACKET_NEXT[m.id];
     if (!bn) return;
     const nextM = d.matches.find(x => x.id === bn.next);
-    if (nextM && nextM[bn.slot] !== winner) { nextM[bn.slot] = winner; changed = true; }
+    if (nextM && nextM[bn.slot] !== winner) {
+      console.log('autoFill change: R32#'+m.id+'→R'+bn.next+' '+bn.slot+': "'+nextM[bn.slot]+'" → "'+winner+'"');
+      nextM[bn.slot] = winner; changed = true;
+    }
     if (bn.loserNext) {
       const loser = winner === m.home ? m.away : m.home;
       const loserM = d.matches.find(x => x.id === bn.loserNext);
