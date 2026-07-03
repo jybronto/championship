@@ -483,7 +483,7 @@ nav button.act { color: var(--accent); }
 
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.86';
+const VERSION = 'v3.87';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -744,42 +744,62 @@ function initFirebase() {
   }
 
   firebase.initializeApp(FIREBASE_CONFIG);
-  stateRef = firebase.database().ref('wc2026');
+  const db = firebase.database();
 
-  stateRef.on('value', snapshot => {
-    const wasSelf = isSavingLocally;
-    isSavingLocally = false;
-    try {
-      const val = snapshot.val();
-      if (!val) {
-        data = buildDefaultData();
-        isSavingLocally = true;
-        stateRef.set(data);
-      } else {
-        data = normalizeData(val);
-        // Derive the playoff bracket in-memory for display. NEVER persisted from
-        // here — persisting would re-trigger this handler and loop forever.
-        autoFillBracket(data);
+  // New clients live on a fresh DB path. Any leftover tabs running an old,
+  // looping version keep fighting over the legacy 'wc2026' path, but they can
+  // no longer see — or clobber — the data current clients use.
+  stateRef = db.ref('wc2026_v2');
+
+  function attachStateListener() {
+    stateRef.on('value', snapshot => {
+      const wasSelf = isSavingLocally;
+      isSavingLocally = false;
+      try {
+        const val = snapshot.val();
+        if (!val) {
+          data = buildDefaultData();
+          isSavingLocally = true;
+          stateRef.set(data);
+        } else {
+          data = normalizeData(val);
+          // Derive the playoff bracket in-memory for display. NEVER persisted from
+          // here — persisting would re-trigger this handler and loop forever.
+          autoFillBracket(data);
+        }
+      } catch(e) {
+        console.error('normalizeData/autoFill error:', e);
+        data = data || buildDefaultData();
       }
-    } catch(e) {
-      console.error('normalizeData/autoFill error:', e);
-      data = data || buildDefaultData();
-    }
 
-    if (isFirstLoad) {
-      isFirstLoad = false;
+      if (isFirstLoad) {
+        isFirstLoad = false;
+        hideLoader();
+        renderLeaderboard();
+      } else if (!wasSelf) {
+        // Only re-render for external writes (another user/tab changed data)
+        renderTab(activeTab);
+      }
+    }, err => {
+      console.error('Firebase:', err);
+      data = buildDefaultData();
       hideLoader();
-      renderLeaderboard();
-    } else if (!wasSelf) {
-      // Only re-render for external writes (another user/tab changed data)
-      renderTab(activeTab);
-    }
+    });
+  }
 
-  }, err => {
-    console.error('Firebase:', err);
-    data = buildDefaultData();
-    hideLoader();
-  });
+  // One-time migration: if the new path is still empty, seed it from the legacy
+  // 'wc2026' data (bets/results carry over; the self-healing bracket drops any
+  // stale team names during the copy), then start listening.
+  stateRef.once('value').then(snap => {
+    if (snap.val()) return;                     // already migrated
+    return db.ref('wc2026').once('value').then(legacy => {
+      const src = legacy.val();
+      if (!src) return;                         // nothing to copy — listener seeds default
+      const seed = normalizeData(src);
+      autoFillBracket(seed);
+      return stateRef.set(seed);
+    });
+  }).catch(e => console.error('v2 migration:', e)).then(attachStateListener);
 }
 
 function saveData(d) {
