@@ -22,6 +22,7 @@
   --blue: #448aff;
 }
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+button, summary, [onclick], input, select { touch-action: manipulation; }
 html { min-height: 100%; background: var(--bg); }
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -482,7 +483,7 @@ nav button.act { color: var(--accent); }
 
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.81';
+const VERSION = 'v3.82';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -687,6 +688,7 @@ const FIREBASE_CONFIG = {
 
 let stateRef = null;
 let isFirstLoad = true;
+let isSavingLocally = false; // prevents re-render on our own Firebase writes
 
 function buildDefaultData() {
   return {
@@ -744,10 +746,13 @@ function initFirebase() {
   stateRef = firebase.database().ref('wc2026');
 
   stateRef.on('value', snapshot => {
+    const wasSelf = isSavingLocally;
+    isSavingLocally = false;
     try {
       const val = snapshot.val();
       if (!val) {
         data = buildDefaultData();
+        isSavingLocally = true;
         stateRef.set(data);
       } else {
         data = normalizeData(val);
@@ -762,7 +767,8 @@ function initFirebase() {
       isFirstLoad = false;
       hideLoader();
       renderLeaderboard();
-    } else {
+    } else if (!wasSelf) {
+      // Only re-render for external writes (another user/tab changed data)
       renderTab(activeTab);
     }
 
@@ -776,7 +782,8 @@ function initFirebase() {
 function saveData(d) {
   data = d;
   if (stateRef) {
-    stateRef.set(d);          // syncs to all connected devices instantly
+    isSavingLocally = true;
+    stateRef.set(d);
   } else {
     localStorage.setItem('wc2026', JSON.stringify(d));
   }
@@ -1595,11 +1602,11 @@ function renderAdmin() {
 
   // API Log
   const log = Array.isArray(data.apiLog) ? data.apiLog : Object.values(data.apiLog || {});
-  html += `<details style="margin-bottom:12px">
-    <summary style="cursor:pointer;font-size:13px;font-weight:600;color:var(--text-dim);padding:8px 12px;background:var(--surface);border-radius:10px;list-style:none;display:flex;align-items:center;gap:6px">
-      <span>▶</span> Лог обновлений API: football-data.org
-    </summary>
-    <div style="margin-top:6px;padding:10px 12px;background:var(--surface);border-radius:10px">`;
+  html += `<div style="margin-bottom:12px">
+    <button onclick="(function(b){var p=document.getElementById('api-log-body');var open=p.style.display!=='none';p.style.display=open?'none':'block';b.querySelector('.log-arrow').textContent=open?'▶':'▼';})(this)" style="width:100%;cursor:pointer;font-size:13px;font-weight:600;color:var(--text-dim);padding:8px 12px;background:var(--surface);border-radius:10px;border:none;display:flex;align-items:center;gap:6px;text-align:left">
+      <span class="log-arrow">▶</span> Лог обновлений API: football-data.org
+    </button>
+    <div id="api-log-body" style="display:none;margin-top:6px;padding:10px 12px;background:var(--surface);border-radius:10px">`;
   if (!log.length) {
     html += '<div style="color:var(--text-dim);font-size:13px">Обновлений ещё не было</div>';
   } else {
@@ -1614,7 +1621,7 @@ function renderAdmin() {
     });
     html += '</div>';
   }
-  html += '</div></details>';
+  html += '</div></div>';
 
   // Reset
 
