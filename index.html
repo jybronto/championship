@@ -483,7 +483,7 @@ nav button.act { color: var(--accent); }
 
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.82';
+const VERSION = 'v3.83';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -748,6 +748,7 @@ function initFirebase() {
   stateRef.on('value', snapshot => {
     const wasSelf = isSavingLocally;
     isSavingLocally = false;
+    console.log('Firebase value event, wasSelf='+wasSelf+', isFirstLoad='+isFirstLoad);
     try {
       const val = snapshot.val();
       if (!val) {
@@ -783,6 +784,7 @@ function saveData(d) {
   data = d;
   if (stateRef) {
     isSavingLocally = true;
+    console.log('saveData → Firebase', new Error().stack.split('\n')[2]?.trim());
     stateRef.set(d);
   } else {
     localStorage.setItem('wc2026', JSON.stringify(d));
@@ -877,6 +879,7 @@ function switchTab(tab, btn) {
 }
 
 function renderTab(tab) {
+  console.log('renderTab:', tab, new Error().stack.split('\n')[2]?.trim());
   if (tab === 'lb') renderLeaderboard();
   else if (tab === 'matches') renderMatches();
   else if (tab === 'bets') renderBets();
