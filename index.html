@@ -530,7 +530,7 @@ nav button.act { color: var(--accent); }
 
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.91';
+const VERSION = 'v3.92';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -823,6 +823,7 @@ function initFirebase() {
         isFirstLoad = false;
         hideLoader();
         renderLeaderboard();
+        autoFetchResults(); // also pull fresh scores from the API on page load
       } else if (!wasSelf) {
         // Only re-render for external writes (another user/tab changed data)
         renderTab(activeTab);
@@ -1249,8 +1250,8 @@ function pushApiLog(d, desc) {
   if (d.apiLog.length > 100) d.apiLog.length = 100;
 }
 
-async function fetchAndUpdateResults() {
-  const btn = document.getElementById('fetch-results-btn');
+async function fetchAndUpdateResults(silent = false) {
+  const btn = silent ? null : document.getElementById('fetch-results-btn');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Загрузка...'; }
 
   try {
@@ -1392,19 +1393,31 @@ async function fetchAndUpdateResults() {
     const hasExisting = Array.isArray(data.standings) && data.standings.length > 0;
     if ((updated > 0 || !hasExisting) && stateRef) {
       const st = getStandings(data).map(s => ({ name: s.name, points: s.total }));
-      firebase.database().ref('wc2026/standings').set(st);
+      stateRef.child('standings').set(st);
     }
 
     const parts = [];
     if (updated > 0) parts.push(`${updated} результатов`);
     if (timesFixed > 0) parts.push(`${timesFixed} времён`);
     if (confirmed > 0) parts.push(`${confirmed} ✏️→✅ подтверждено API`);
-    alert(parts.length ? `✅ Обновлено: ${parts.join(', ')}` : `Изменений нет`);
+    if (!silent) alert(parts.length ? `✅ Обновлено: ${parts.join(', ')}` : `Изменений нет`);
   } catch (e) {
-    alert(`Ошибка: ${e.message}`);
+    if (!silent) alert(`Ошибка: ${e.message}`);
+    else console.warn('Авто-обновление API:', e.message);
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = '🔄 Обновить результаты'; }
   }
+}
+
+// Silent, throttled auto-refresh from the API — runs on page load so users get
+// fresh scores without having to press the button.
+function autoFetchResults() {
+  try {
+    const last = +(localStorage.getItem('lastApiAutoFetch') || 0);
+    if (Date.now() - last < 10000) return; // guard against rapid reloads hammering the API
+    localStorage.setItem('lastApiAutoFetch', Date.now());
+  } catch (e) {}
+  fetchAndUpdateResults(true).catch(() => {});
 }
 
 // ===================== RENDER MATCHES =====================
