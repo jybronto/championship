@@ -441,6 +441,11 @@ nav button.act { color: var(--accent); }
 .upset-bar { width: 56px; height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden; flex-shrink: 0; }
 .upset-bar i { display: block; height: 100%; border-radius: 4px; }
 .upset-pct { width: 34px; text-align: right; font-size: 11px; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+/* champion banner */
+.champ-box { display: flex; flex-direction: column; align-items: center; gap: 3px; background: linear-gradient(160deg, #24301c 0%, #162030 70%); border: 1px solid var(--gold); border-radius: 14px; padding: 14px; margin-bottom: 14px; box-shadow: 0 0 16px #ffd7001f; }
+.champ-cup { font-size: 46px; line-height: 1; filter: drop-shadow(0 2px 3px #0007); }
+.champ-title { font-size: 11px; letter-spacing: 3px; color: var(--gold); font-weight: 700; }
+.champ-team { font-size: 19px; font-weight: 800; color: var(--text); display: flex; align-items: center; gap: 8px; }
 </style>
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -530,7 +535,7 @@ nav button.act { color: var(--accent); }
 
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.93';
+const VERSION = 'v3.94';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -1005,7 +1010,7 @@ function renderLeaderboard() {
 
   const champion = getChampion(data);
   if (champion) {
-    html += `<div class="info-box">🏆 Чемпион: ${flag(champion)} <strong>${champion}</strong></div>`;
+    html += `<div class="champ-box"><div class="champ-cup">🏆</div><div class="champ-title">ЧЕМПИОН</div><div class="champ-team">${flag(champion)} ${champion}</div></div>`;
   }
 
   // 3-column standings grid
