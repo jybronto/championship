@@ -446,6 +446,9 @@ nav button.act { color: var(--accent); }
 .champ-cup { font-size: 46px; line-height: 1; filter: drop-shadow(0 2px 3px #0007); }
 .champ-title { font-size: 11px; letter-spacing: 3px; color: var(--gold); font-weight: 700; }
 .champ-team { font-size: 19px; font-weight: 800; color: var(--text); display: flex; align-items: center; gap: 8px; }
+.champ-divider { width: 58%; height: 1px; background: linear-gradient(90deg, transparent, var(--gold), transparent); opacity: .45; margin: 9px 0 4px; }
+.champ-winner-label { font-size: 11px; letter-spacing: 3px; color: var(--gold); font-weight: 700; }
+.champ-winner { font-size: 18px; font-weight: 800; color: var(--text); }
 </style>
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -535,7 +538,7 @@ nav button.act { color: var(--accent); }
 
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.94';
+const VERSION = 'v3.95';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -1010,7 +1013,13 @@ function renderLeaderboard() {
 
   const champion = getChampion(data);
   if (champion) {
-    html += `<div class="champ-box"><div class="champ-cup">🏆</div><div class="champ-title">ЧЕМПИОН</div><div class="champ-team">${flag(champion)} ${champion}</div></div>`;
+    const topTotal = standings.length ? standings[0].total : 0;
+    const winners = topTotal > 0 ? standings.filter(s => s.total === topTotal).map(s => s.name) : [];
+    let champHtml = `<div class="champ-box"><div class="champ-cup">🏆</div><div class="champ-title">ЧЕМПИОН</div><div class="champ-team">${flag(champion)} ${champion}</div>`;
+    if (winners.length) {
+      champHtml += `<div class="champ-divider"></div><div class="champ-winner-label">ПОБЕДИТЕЛЬ</div><div class="champ-winner">🏅 ${winners.join(' · ')}</div>`;
+    }
+    html += champHtml + '</div>';
   }
 
   // 3-column standings grid
