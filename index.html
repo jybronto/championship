@@ -530,7 +530,7 @@ nav button.act { color: var(--accent); }
 
 // ===================== CONSTANTS =====================
 
-const VERSION = 'v3.92';
+const VERSION = 'v3.93';
 
 const PLAYERS = ['Игорь', 'Макс', 'Дима', 'Арсений', 'Владимир', 'Аристарх', 'Волохатий', 'Женя'];
 
@@ -879,6 +879,20 @@ function calcPoints(pred, result, isPlayoff = false) {
   return pts;
 }
 
+// The tournament champion. An explicit admin pick (tournamentWinner) wins;
+// otherwise it is derived automatically from the final (round 'F') result once
+// the match has been played — so the +10 bonus counts without a manual step.
+function getChampion(data) {
+  if (data.tournamentWinner) return data.tournamentWinner;
+  const final = (data.matches || []).find(m => m.round === 'F' && m.result);
+  if (final && final.result) {
+    const r = final.result;
+    const w = r.winner || (r.home !== r.away ? (r.home > r.away ? final.home : final.away) : null);
+    if (w && w !== 'ТБД') return w;
+  }
+  return null;
+}
+
 function getStandings(data) {
   const st = {};
   PLAYERS.forEach(p => { st[p] = {name:p, matchPts:0, bonusPts:0, team: data.tournamentPicks[p] || null}; });
@@ -892,9 +906,10 @@ function getStandings(data) {
     });
   });
 
-  if (data.tournamentWinner) {
+  const champ = getChampion(data);
+  if (champ) {
     PLAYERS.forEach(p => {
-      if (data.tournamentPicks[p] === data.tournamentWinner) st[p].bonusPts += 10;
+      if (data.tournamentPicks[p] === champ) st[p].bonusPts += 10;
     });
   }
 
@@ -988,8 +1003,9 @@ function renderLeaderboard() {
   const standings = getStandings(data);
   let html = '';
 
-  if (data.tournamentWinner) {
-    html += `<div class="info-box">🏆 Чемпион: ${flag(data.tournamentWinner)} <strong>${data.tournamentWinner}</strong></div>`;
+  const champion = getChampion(data);
+  if (champion) {
+    html += `<div class="info-box">🏆 Чемпион: ${flag(champion)} <strong>${champion}</strong></div>`;
   }
 
   // 3-column standings grid
